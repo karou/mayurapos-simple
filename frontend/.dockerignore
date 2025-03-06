@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Builds
+/build
+/dist
+/.next
+
+# Environment and configuration
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.npmrc
+
+# Testing
+/coverage
+
+# Version control
+.git
+.github
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+/.idea
+/.vscode
+*.sublime-project
+*.sublime-workspace
+
+# Misc
+/cypress
+/data
+/docs
+/public/mockServiceWorker.js
+*.md
+!README.md
+*.log
+*.lock
