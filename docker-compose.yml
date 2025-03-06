@@ -1,0 +1,304 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: mayura-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - PAYMENT_SERVICE_URL=http://payment-service:3002
+      - INVENTORY_SERVICE_URL=http://inventory-service:3003
+      - ORDER_SERVICE_URL=http://order-service:3004
+      - DELIVERY_SERVICE_URL=http://delivery-service:3005
+      - REPORTING_SERVICE_URL=http://reporting-service:3006
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3007
+      - REDIS_URI=redis://redis:6379
+    depends_on:
+      - auth-service
+      - payment-service
+      - inventory-service
+      - order-service
+      - delivery-service
+      - reporting-service
+      - notification-service
+      - redis
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: mayura-auth-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGO_URI=mongodb://mongo-auth:27017/mayura-auth
+      - RABBITMQ_URI=amqp://rabbitmq
+      - REDIS_URI=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=1h
+      - REFRESH_TOKEN_EXPIRES_IN=7d
+    depends_on:
+      - mongo-auth
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: mayura-payment-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - MONGO_URI=mongodb://mongo-payment:27017/mayura-payment
+      - RABBITMQ_URI=amqp://rabbitmq
+      - REDIS_URI=redis://redis:6379
+    depends_on:
+      - mongo-payment
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # Inventory Service
+  inventory-service:
+    build:
+      context: ./inventory-service
+      dockerfile: Dockerfile
+    container_name: mayura-inventory-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - MONGO_URI=mongodb://mongo-inventory:27017/mayura-inventory
+      - RABBITMQ_URI=amqp://rabbitmq
+      - REDIS_URI=redis://redis:6379
+    depends_on:
+      - mongo-inventory
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # Order Service
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: mayura-order-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - MONGO_URI=mongodb://mongo-order:27017/mayura-order
+      - RABBITMQ_URI=amqp://rabbitmq
+      - REDIS_URI=redis://redis:6379
+    depends_on:
+      - mongo-order
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # Delivery Service
+  delivery-service:
+    build:
+      context: ./delivery-service
+      dockerfile: Dockerfile
+    container_name: mayura-delivery-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - MONGO_URI=mongodb://mongo-delivery:27017/mayura-delivery
+      - RABBITMQ_URI=amqp://rabbitmq
+      - REDIS_URI=redis://redis:6379
+    depends_on:
+      - mongo-delivery
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # Reporting Service
+  reporting-service:
+    build:
+      context: ./reporting-service
+      dockerfile: Dockerfile
+    container_name: mayura-reporting-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - MONGO_URI=mongodb://mongo-reporting:27017/mayura-reporting
+      - RABBITMQ_URI=amqp://rabbitmq
+      - REDIS_URI=redis://redis:6379
+    depends_on:
+      - mongo-reporting
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: mayura-notification-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3007
+      - MONGO_URI=mongodb://mongo-notification:27017/mayura-notification
+      - RABBITMQ_URI=amqp://rabbitmq
+      - REDIS_URI=redis://redis:6379
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMS_API_KEY=${SMS_API_KEY}
+    depends_on:
+      - mongo-notification
+      - rabbitmq
+      - redis
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # MongoDB instances (separate for each service)
+  mongo-auth:
+    image: mongo:latest
+    container_name: mayura-mongo-auth
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-auth-data:/data/db
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  mongo-payment:
+    image: mongo:latest
+    container_name: mayura-mongo-payment
+    ports:
+      - "27018:27018"
+    volumes:
+      - mongo-payment-data:/data/db
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  mongo-inventory:
+    image: mongo:latest
+    container_name: mayura-mongo-inventory
+    ports:
+      - "27019:27019"
+    volumes:
+      - mongo-inventory-data:/data/db
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  mongo-order:
+    image: mongo:latest
+    container_name: mayura-mongo-order
+    ports:
+      - "27020:27020"
+    volumes:
+      - mongo-order-data:/data/db
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  mongo-delivery:
+    image: mongo:latest
+    container_name: mayura-mongo-delivery
+    ports:
+      - "27021:27021"
+    volumes:
+      - mongo-delivery-data:/data/db
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  mongo-reporting:
+    image: mongo:latest
+    container_name: mayura-mongo-reporting
+    ports:
+      - "27022:27022"
+    volumes:
+      - mongo-reporting-data:/data/db
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  mongo-notification:
+    image: mongo:latest
+    container_name: mayura-mongo-notification
+    ports:
+      - "27023:27023"
+    volumes:
+      - mongo-notification-data:/data/db
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # RabbitMQ for message broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: mayura-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI port
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    restart: unless-stopped
+    networks:
+      - mayura-network
+
+  # Redis for caching
+  redis:
+    image: redis:alpine
+    container_name: mayura-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    networks:
+      - mayura-network
+
+networks:
+  mayura-network:
+    driver: bridge
+
+volumes:
+  mongo-auth-data:
+  mongo-payment-data:
+  mongo-inventory-data:
+  mongo-order-data:
+  mongo-delivery-data:
+  mongo-reporting-data:
+  mongo-notification-data:
+  rabbitmq-data:
+  redis-data:
