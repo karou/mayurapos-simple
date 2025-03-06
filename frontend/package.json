@@ -1,0 +1,68 @@
+{
+    "name": "mayurapos-frontend",
+    "version": "1.0.0",
+    "private": true,
+    "dependencies": {
+      "@heroicons/react": "^2.0.18",
+      "@reduxjs/toolkit": "^1.9.5",
+      "axios": "^1.5.0",
+      "date-fns": "^2.30.0",
+      "dexie": "^3.2.4",
+      "formik": "^2.4.3",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0",
+      "react-redux": "^8.1.2",
+      "react-router-dom": "^6.15.0",
+      "yup": "^1.2.0"
+    },
+    "devDependencies": {
+      "@testing-library/jest-dom": "^5.17.0",
+      "@testing-library/react": "^14.0.0",
+      "@testing-library/user-event": "^14.4.3",
+      "@types/jest": "^29.5.4",
+      "@types/node": "^20.5.7",
+      "@types/react": "^18.2.21",
+      "@types/react-dom": "^18.2.7",
+      "@typescript-eslint/eslint-plugin": "^6.5.0",
+      "@typescript-eslint/parser": "^6.5.0",
+      "autoprefixer": "^10.4.15",
+      "eslint": "^8.48.0",
+      "eslint-config-prettier": "^9.0.0",
+      "eslint-plugin-react": "^7.33.2",
+      "eslint-plugin-react-hooks": "^4.6.0",
+      "postcss": "^8.4.29",
+      "prettier": "^3.0.3",
+      "react-scripts": "5.0.1",
+      "tailwindcss": "^3.3.3",
+      "typescript": "^5.2.2",
+      "workbox-cli": "^7.0.0",
+      "workbox-webpack-plugin": "^7.0.0"
+    },
+    "scripts": {
+      "start": "react-scripts start",
+      "build": "react-scripts build",
+      "test": "react-scripts test",
+      "eject": "react-scripts eject",
+      "lint": "eslint src --ext .ts,.tsx",
+      "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+      "generate-sw": "workbox generateSW workbox-config.js"
+    },
+    "eslintConfig": {
+      "extends": [
+        "react-app",
+        "react-app/jest"
+      ]
+    },
+    "browserslist": {
+      "production": [
+        ">0.2%",
+        "not dead",
+        "not op_mini all"
+      ],
+      "development": [
+        "last 1 chrome version",
+        "last 1 firefox version",
+        "last 1 safari version"
+      ]
+    }
+  }
