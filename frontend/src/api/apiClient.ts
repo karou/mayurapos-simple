@@ -1,3 +1,4 @@
+// src/api/apiClient.ts
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { storageService } from '../services/storageService';
 
@@ -10,6 +11,11 @@ const API_URLS = {
 
 // Get the current environment
 const environment = process.env.NODE_ENV || 'development';
+
+// Define a proper interface for the refresh token response
+interface RefreshTokenResponse {
+  token: string;
+}
 
 class ApiClient {
   private instance: AxiosInstance;
@@ -78,24 +84,29 @@ class ApiClient {
 
             const response = await this.instance.post('/auth/refresh-token', { refreshToken });
             
-            if (response.data.token) {
-              const newToken = response.data.token;
-              await storageService.setItem('token', newToken);
+            // Fix: Properly check and type the response data
+            if (response.data && typeof response.data === 'object') {
+              const responseData = response.data as RefreshTokenResponse;
               
-              // Process queued requests with success
-              this.processFailedQueue(true);
-              
-              // Update auth header and retry original request
-              if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+              if (responseData.token) {
+                const newToken = responseData.token;
+                await storageService.setItem('token', newToken);
+                
+                // Process queued requests with success
+                this.processFailedQueue(true);
+                
+                // Update auth header and retry original request
+                if (originalRequest.headers) {
+                  originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                }
+                
+                return this.instance(originalRequest);
               }
-              
-              return this.instance(originalRequest);
-            } else {
-              // No new token received
-              this.processFailedQueue(false);
-              return Promise.reject(error);
             }
+            
+            // No new token received
+            this.processFailedQueue(false);
+            return Promise.reject(error);
           } catch (refreshError) {
             // Failed to refresh token
             this.processFailedQueue(false);

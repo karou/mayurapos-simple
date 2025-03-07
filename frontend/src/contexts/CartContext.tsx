@@ -20,7 +20,8 @@ interface CartContextType {
   getItemQuantity: (productId: string) => number;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+// Export the context so hooks can import it
+export const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const TAX_RATE = 0.07; // 7% tax rate - would come from config in a real app
 

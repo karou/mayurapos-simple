@@ -1,3 +1,4 @@
+// src/api/orderApi.ts
 import { apiClient } from './apiClient';
 import { 
   Order, 
@@ -9,6 +10,23 @@ import {
   PaginatedResponse
 } from '../types/order.types';
 import { CartItem } from '../types/inventory.types';
+import { safeGet } from '../utils/type-safety';
+
+// Add these interfaces to properly type the responses
+interface StatusUpdateResponse {
+  orderId: string;
+  status: OrderStatus;
+}
+
+interface OrdersResponse {
+  orders: OrderSummary[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
 
 class OrderApi {
   /**
@@ -55,17 +73,20 @@ class OrderApi {
     page: number = 1,
     limit: number = 10
   ): Promise<PaginatedResponse<OrderSummary>> {
-    const response = await apiClient.get<PaginatedResponse<OrderSummary>>(`/api/orders/orders/customer/${customerId}`, {
-      params: { status, page, limit }
-    });
+    const response = await apiClient.get<PaginatedResponse<OrderSummary>>(
+      `/api/orders/orders/customer/${customerId}`, 
+      {
+        params: { status, page, limit }
+      }
+    );
     return response.data;
   }
 
   /**
    * Search orders with various filters
    */
-  async searchOrders(params: OrderSearchParams = {}): Promise<PaginatedResponse<OrderSummary>> {
-    const response = await apiClient.get<PaginatedResponse<OrderSummary>>('/api/orders/orders', {
+  async searchOrders(params: OrderSearchParams = {}): Promise<OrdersResponse> {
+    const response = await apiClient.get<OrdersResponse>('/api/orders/orders', {
       params
     });
     return response.data;
@@ -157,8 +178,8 @@ class OrderApi {
   /**
    * Cancel order
    */
-  async cancelOrder(orderId: string, reason?: string): Promise<{ orderId: string; status: OrderStatus }> {
-    const response = await apiClient.post<{ orderId: string; status: OrderStatus }>(`/api/orders/orders/${orderId}/cancel`, {
+  async cancelOrder(orderId: string, reason?: string): Promise<StatusUpdateResponse> {
+    const response = await apiClient.post<StatusUpdateResponse>(`/api/orders/orders/${orderId}/cancel`, {
       reason
     });
     return response.data;
@@ -171,8 +192,8 @@ class OrderApi {
     orderId: string,
     status: OrderStatus,
     notes?: string
-  ): Promise<{ orderId: string; status: OrderStatus }> {
-    const response = await apiClient.put<{ orderId: string; status: OrderStatus }>(`/api/orders/orders/${orderId}/status`, {
+  ): Promise<StatusUpdateResponse> {
+    const response = await apiClient.put<StatusUpdateResponse>(`/api/orders/orders/${orderId}/status`, {
       status,
       notes
     });

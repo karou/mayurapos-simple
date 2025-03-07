@@ -1,5 +1,14 @@
+// src/components/common/PublicRoute.tsx
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
+import { safeGet } from '../../utils/type-safety';
+
+// Define a type for the location state
+interface LocationState {
+  from?: {
+    pathname: string;
+  };
+}
 
 /**
  * PublicRoute component for routes that should redirect to dashboard if already authenticated
@@ -18,11 +27,13 @@ const PublicRoute = () => {
   }
 
   // Get the intended destination from location state, or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
+  // Fix the unsafe assignment and member access by using proper typing and safe access
+  const state = location.state as LocationState | null;
+  const fromPath = safeGet(state?.from, 'pathname') || '/dashboard';
 
   // If authenticated, redirect to dashboard or intended destination
   if (isAuthenticated) {
-    return <Navigate to={from} replace />;
+    return <Navigate to={fromPath} replace />;
   }
 
   // Render child routes

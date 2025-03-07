@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
@@ -33,7 +34,8 @@ const App: React.FC = () => {
       setIsReady(true);
     };
 
-    initApp();
+    // Fix: Add void operator to handle the floating promise
+    void initApp();
   }, []);
 
   if (!isReady) {

@@ -1,3 +1,4 @@
+// src/components/orders/OrderList.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -54,7 +55,8 @@ const OrderList: React.FC<OrderListProps> = ({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[...Array(3)].map((_, index) => (
+        {/* Fix: Remove unsafe spread by using a hardcoded array of fixed length */}
+        {[0, 1, 2].map((_, index) => (
           <div key={index} className="card animate-pulse p-4">
             <div className="h-6 w-48 rounded bg-secondary-200"></div>
             <div className="mt-4 flex justify-between">
