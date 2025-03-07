@@ -1,5 +1,7 @@
+// src/components/common/OfflineIndicator.tsx
 import React from 'react';
 import { useOffline } from '../../contexts/OfflineContext';
+import { handleAsyncEvent } from '../../utils/type-safety';
 
 /**
  * OfflineIndicator component that displays a banner when the app is in offline mode
@@ -12,7 +14,7 @@ const OfflineIndicator: React.FC = () => {
     return null;
   }
 
-  const handleSync = async (e: React.MouseEvent) => {
+  const handleSync = async (e: React.MouseEvent): Promise<void> => {
     e.preventDefault();
     if (isOnline && hasPendingSync) {
       try {
@@ -37,7 +39,7 @@ const OfflineIndicator: React.FC = () => {
       </div>
       {hasPendingSync && isOnline && (
         <button
-          onClick={handleSync}
+          onClick={handleAsyncEvent(handleSync)}
           className="ml-4 rounded bg-white px-2 py-1 text-xs font-medium text-warning-700 transition-colors hover:bg-warning-50"
         >
           Sync now ({pendingSyncCount})

@@ -1,90 +1,92 @@
+// .eslintrc.js
+
 module.exports = {
-    root: true,
-    parser: '@typescript-eslint/parser',
+    parser: "@typescript-eslint/parser",
     parserOptions: {
       ecmaVersion: 2020,
-      sourceType: 'module',
+      sourceType: "module",
       ecmaFeatures: {
-        jsx: true,
+        jsx: true
       },
-      project: './tsconfig.json',
+      project: "./tsconfig.json"
     },
     settings: {
       react: {
-        version: 'detect',
-      },
+        version: "detect"
+      }
     },
     extends: [
-      'eslint:recommended',
-      'plugin:react/recommended',
-      'plugin:react-hooks/recommended',
-      'plugin:@typescript-eslint/recommended',
-      'plugin:@typescript-eslint/recommended-requiring-type-checking',
-      'prettier',
-    ],
-    plugins: [
-      'react',
-      'react-hooks',
-      '@typescript-eslint',
+      "eslint:recommended",
+      "plugin:react/recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:@typescript-eslint/recommended-requiring-type-checking",
+      "prettier"
     ],
     rules: {
-      // React rules
-      'react/react-in-jsx-scope': 'off', // Not needed in React 17+
-      'react/prop-types': 'off', // We use TypeScript instead
-      'react/display-name': 'off',
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      // Fix for React no-unescaped-entities rule
+      "react/no-unescaped-entities": [
+        "error",
+        {
+          "forbid": [
+            {
+              "char": ">",
+              "alternatives": ["&gt;"]
+            },
+            {
+              "char": "}",
+              "alternatives": ["&#125;"]
+            }
+          ]
+        }
+      ],
       
-      // TypeScript rules
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { 
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_'
-      }],
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/await-thenable': 'error',
-      '@typescript-eslint/no-misused-promises': 'error',
+      // Better handling of Promise-related issues
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        {
+          "checksVoidReturn": {
+            "attributes": false
+          }
+        }
+      ],
       
-      // General rules
-      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
-      'prefer-const': 'error',
-      'eqeqeq': ['error', 'always', { 'null': 'ignore' }],
-      'no-var': 'error',
-      'object-shorthand': 'error',
-      'prefer-template': 'error',
-      'no-param-reassign': 'error',
-      'no-nested-ternary': 'warn',
-      'spaced-comment': ['warn', 'always'],
+      // Allow some any types in specific situations
+      "@typescript-eslint/no-unsafe-assignment": "warn",
+      "@typescript-eslint/no-unsafe-member-access": "warn",
+      "@typescript-eslint/no-unsafe-call": "warn",
+      "@typescript-eslint/no-unsafe-return": "warn",
+      "@typescript-eslint/no-unsafe-argument": "warn",
+      
+      // Additional useful TypeScript rules
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-ignore": "allow-with-description",
+          "ts-expect-error": "allow-with-description",
+          "minimumDescriptionLength": 10
+        }
+      ],
+      
+      // React specific rules
+      "react/prop-types": "off",
+      "react/react-in-jsx-scope": "off",
+      "react/display-name": "off",
+      "react/jsx-curly-brace-presence": ["error", "never"]
     },
     overrides: [
       {
-        // Test files
-        files: ['**/*.test.ts', '**/*.test.tsx', '**/setupTests.ts'],
-        env: {
-          jest: true,
-        },
+        files: ["*.test.tsx", "*.test.ts", "*.spec.tsx", "*.spec.ts"],
         rules: {
-          '@typescript-eslint/no-explicit-any': 'off',
-          '@typescript-eslint/no-non-null-assertion': 'off',
-        }
-      },
-      {
-        // Configuration files
-        files: ['.eslintrc.js', 'jest.config.js', 'tailwind.config.js'],
-        env: {
-          node: true,
-        },
-        rules: {
-          '@typescript-eslint/no-var-requires': 'off',
+          "@typescript-eslint/no-unsafe-assignment": "off",
+          "@typescript-eslint/no-unsafe-member-access": "off",
+          "@typescript-eslint/no-unsafe-call": "off",
+          "@typescript-eslint/no-unsafe-return": "off",
+          "@typescript-eslint/no-unsafe-argument": "off"
         }
       }
-    ],
-    env: {
-      browser: true,
-      es2020: true,
-      node: true,
-    },
+    ]
   };

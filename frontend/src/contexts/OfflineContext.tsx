@@ -12,7 +12,8 @@ interface OfflineContextType {
   syncWithServer: () => Promise<void>;
 }
 
-const OfflineContext = createContext<OfflineContextType | undefined>(undefined);
+// Create the context with a default value
+export const OfflineContext = createContext<OfflineContextType | undefined>(undefined);
 
 export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Network status state
@@ -106,7 +107,7 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <OfflineContext.Provider
       value={{
         isOnline,
-        isOfflineMode: isOfflineMode || !isOnline, // Either user preference or network status
+        isOfflineMode: isOfflineMode || !isOnline,
         hasPendingSync,
         lastSyncTime,
         pendingSyncCount,

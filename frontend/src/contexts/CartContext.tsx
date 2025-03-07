@@ -1,7 +1,9 @@
+// src/contexts/CartContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { cartService } from '../services/cartService';
 import { Product, CartItem } from '../types/inventory.types';
+import { safeJsonParse } from '../utils/type-safety';
 
 interface CartContextType {
   items: CartItem[];
@@ -34,11 +36,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load cart from storage on mount
   useEffect(() => {
-    const loadCart = async () => {
+    const loadCart = async (): Promise<void> => {
       try {
         const savedCart = await storageService.getItem('cart');
         if (savedCart) {
-          setItems(JSON.parse(savedCart));
+          const parsedCart = safeJsonParse<CartItem[]>(savedCart, []);
+          setItems(parsedCart);
         }
       } catch (error) {
         console.error('Error loading cart:', error);
@@ -47,12 +50,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    loadCart();
+    void loadCart(); // Mark with void to handle the floating promise
   }, []);
 
   // Save cart to storage whenever it changes
   useEffect(() => {
-    const saveCart = async () => {
+    const saveCart = async (): Promise<void> => {
       try {
         await storageService.setItem('cart', JSON.stringify(items));
       } catch (error) {
@@ -61,11 +64,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     if (!isLoading) {
-      saveCart();
+      void saveCart(); // Mark with void to handle the floating promise
     }
   }, [items, isLoading]);
 
-  const addItem = (product: Product, quantity: number) => {
+  const addItem = (product: Product, quantity: number): void => {
     setItems(prevItems => {
       // Check if product already exists in cart
       const existingItemIndex = prevItems.findIndex(item => item.productId === product.productId);
@@ -89,7 +92,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number): void => {
     setItems(prevItems => {
       return prevItems.map(item => 
         item.productId === productId 
@@ -99,19 +102,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const removeItem = (productId: string) => {
+  const removeItem = (productId: string): void => {
     setItems(prevItems => prevItems.filter(item => item.productId !== productId));
   };
 
-  const clearCart = () => {
+  const clearCart = (): void => {
     setItems([]);
   };
 
-  const isInCart = (productId: string) => {
+  const isInCart = (productId: string): boolean => {
     return items.some(item => item.productId === productId);
   };
 
-  const getItemQuantity = (productId: string) => {
+  const getItemQuantity = (productId: string): number => {
     const item = items.find(item => item.productId === productId);
     return item ? item.quantity : 0;
   };
@@ -138,7 +141,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useCart = () => {
+export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
   if (context === undefined) {
     throw new Error('useCart must be used within a CartProvider');

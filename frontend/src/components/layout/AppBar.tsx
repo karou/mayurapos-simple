@@ -1,9 +1,11 @@
+// src/components/layout/AppBar.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import { useOffline } from '../../contexts/OfflineContext';
 import { useToast } from '../../contexts/ToastContext';
+import { handleAsyncEvent } from '../../utils/type-safety';
 
 const AppBar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -13,7 +15,7 @@ const AppBar: React.FC = () => {
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     try {
       await logout();
       navigate('/login');
@@ -23,7 +25,7 @@ const AppBar: React.FC = () => {
     }
   };
 
-  const toggleOfflineMode = () => {
+  const toggleOfflineMode = (): void => {
     if (isOfflineMode) {
       disableOfflineMode();
       showToast('Online mode enabled', 'success');
@@ -33,7 +35,7 @@ const AppBar: React.FC = () => {
     }
   };
 
-  const handleSync = async () => {
+  const handleSync = async (): Promise<void> => {
     if (!isOnline) {
       showToast('Cannot sync while offline', 'error');
       return;
@@ -125,7 +127,7 @@ const AppBar: React.FC = () => {
             {/* Sync button */}
             {hasPendingSync && isOnline && (
               <button
-                onClick={handleSync}
+                onClick={handleAsyncEvent(handleSync)}
                 className="relative rounded-md p-2 hover:bg-primary-600"
                 aria-label="Sync pending changes"
               >
@@ -174,7 +176,7 @@ const AppBar: React.FC = () => {
                     Settings
                   </Link>
                   <button
-                    onClick={handleLogout}
+                    onClick={handleAsyncEvent(handleLogout)}
                     className="block w-full px-4 py-2 text-left text-sm text-secondary-700 hover:bg-secondary-100"
                     role="menuitem"
                   >

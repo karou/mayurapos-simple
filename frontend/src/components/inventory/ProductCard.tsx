@@ -1,7 +1,9 @@
+// src/components/inventory/ProductCard.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { Product } from '../../types/inventory.types';
+import { isArray, safeGet } from '../../utils/type-safety';
 
 interface ProductCardProps {
   product: Product;
@@ -11,14 +13,14 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, showAddToCart = true }) => {
   const { addItem, isInCart, getItemQuantity } = useCart();
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = (e: React.MouseEvent): void => {
     e.preventDefault();
     e.stopPropagation();
     addItem(product, 1);
   };
 
   // Format price with correct currency
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -26,18 +28,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showAddToCart = true
   };
 
   // Get stock status
-  const getStockStatus = () => {
-    // Assuming product.inventory is available and first item is current store
-    if (!product.inventory || !product.inventory[0]) {
+  const getStockStatus = (): { text: string; color: string } => {
+    // Safely access inventory data
+    const inventory = safeGet(product, 'inventory');
+    const firstInventory = isArray(inventory) && inventory.length > 0 ? inventory[0] : null;
+    
+    if (!firstInventory) {
       return { text: 'Unknown', color: 'bg-secondary-100 text-secondary-800' };
     }
 
-    const inventory = product.inventory[0];
-    const quantity = inventory.availableQuantity;
+    const quantity = safeGet(firstInventory, 'availableQuantity') ?? 0;
+    const reorderPoint = safeGet(firstInventory, 'reorderPoint') ?? 0;
 
     if (quantity <= 0) {
       return { text: 'Out of Stock', color: 'bg-danger-100 text-danger-800' };
-    } else if (quantity <= inventory.reorderPoint) {
+    } else if (quantity <= reorderPoint) {
       return { text: 'Low Stock', color: 'bg-warning-100 text-warning-800' };
     } else {
       return { text: 'In Stock', color: 'bg-success-100 text-success-800' };
@@ -47,6 +52,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showAddToCart = true
   const stockStatus = getStockStatus();
   const inCart = isInCart(product.productId);
   const cartQuantity = inCart ? getItemQuantity(product.productId) : 0;
+  const productImage = isArray(product.images) && product.images.length > 0 ? product.images[0] : null;
 
   return (
     <Link to={`/inventory/${product.productId}`} className="block">
@@ -54,9 +60,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showAddToCart = true
         <div className="relative">
           {/* Default image or product image */}
           <div className="relative h-48 bg-secondary-200">
-            {product.images && product.images.length > 0 ? (
+            {productImage ? (
               <img
-                src={product.images[0]}
+                src={productImage}
                 alt={product.name}
                 className="h-full w-full object-cover"
                 onError={(e) => {
@@ -108,7 +114,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showAddToCart = true
               <button
                 onClick={handleAddToCart}
                 className="btn-primary btn-sm flex items-center"
-                disabled={getStockStatus().text === 'Out of Stock'}
+                disabled={stockStatus.text === 'Out of Stock'}
               >
                 <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path

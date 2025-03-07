@@ -1,3 +1,4 @@
+// src/components/orders/Cart.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
@@ -25,7 +26,7 @@ const Cart: React.FC<CartProps> = ({ onCheckout, showCheckoutButton = true }) =>
           </svg>
         </div>
         <h3 className="mb-2 text-lg font-medium text-secondary-900">Your cart is empty</h3>
-        <p className="mb-4 text-secondary-600">Looks like you haven't added any products to your cart yet.</p>
+        <p className="mb-4 text-secondary-600">Looks like you haven&apos;t added any products to your cart yet.</p>
         <Link to="/inventory" className="btn-primary">
           Browse Products
         </Link>

@@ -1,0 +1,26 @@
+# Robots.txt for MayuraPOS
+
+# Block all crawlers from certain sensitive paths
+User-agent: *
+Disallow: /login
+Disallow: /register
+Disallow: /dashboard
+Disallow: /orders
+Disallow: /inventory
+Disallow: /settings
+
+# Allow crawling of public pages
+Allow: /
+
+# Sitemap location (replace with actual sitemap URL when available)
+Sitemap: https://mayurapos.com/sitemap.xml
+
+# Specific crawler instructions
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Performance and crawl rate control
+Crawl-delay: 10

@@ -1,7 +1,9 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
 import { User, LoginCredentials, RegisterCredentials } from '../types/auth.types';
+import { safeJsonParse, safeToString } from '../utils/type-safety';
 
 interface AuthContextType {
   user: User | null;
@@ -23,19 +25,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize auth state from localStorage
   useEffect(() => {
-    const initAuth = async () => {
+    const initAuth = async (): Promise<void> => {
       try {
         const storedUser = await storageService.getItem('user');
         const storedToken = await storageService.getItem('token');
         
         if (storedUser && storedToken) {
-          setUser(JSON.parse(storedUser));
-          // Validate token or refresh if needed
-          try {
-            await authService.validateToken();
-          } catch (error) {
-            // Token is invalid, log the user out
-            await logout();
+          const parsedUser = safeJsonParse<User>(storedUser, null);
+          if (parsedUser) {
+            setUser(parsedUser);
+            // Validate token or refresh if needed
+            try {
+              await authService.validateToken();
+            } catch (error) {
+              // Token is invalid, log the user out
+              await logout();
+            }
           }
         }
       } catch (error) {
@@ -45,10 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    initAuth();
+    void initAuth(); // Explicitly mark as void to handle the floating promise
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: LoginCredentials): Promise<void> => {
     setIsLoading(true);
     setError(null);
     
@@ -61,15 +66,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await storageService.setItem('refreshToken', refreshToken);
       
       setUser(user);
-    } catch (error: any) {
-      setError(error.message || 'Failed to login');
+    } catch (error) {
+      setError(safeToString(error));
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (userData: RegisterCredentials) => {
+  const register = async (userData: RegisterCredentials): Promise<void> => {
     setIsLoading(true);
     setError(null);
     
@@ -80,15 +85,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         username: userData.username,
         password: userData.password
       });
-    } catch (error: any) {
-      setError(error.message || 'Failed to register');
+    } catch (error) {
+      setError(safeToString(error));
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     setIsLoading(true);
     
     try {
@@ -105,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const clearError = () => {
+  const clearError = (): void => {
     setError(null);
   };
 
@@ -127,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');

@@ -1,3 +1,4 @@
+// src/api/inventoryApi.ts
 import { apiClient } from './apiClient';
 import { 
   Product, 
@@ -6,6 +7,17 @@ import {
   ProductSearchParams,
   PaginatedResponse
 } from '../types/inventory.types';
+import { safeGet } from '../utils/type-safety';
+
+interface ReserveInventoryResponse {
+  success: boolean;
+  message?: string;
+}
+
+interface ReleaseInventoryResponse {
+  success: boolean;
+  message?: string;
+}
 
 class InventoryApi {
   /**
@@ -71,12 +83,12 @@ class InventoryApi {
    */
   async reserveInventory(orderId: string, items: { productId: string; quantity: number }[], storeId: string): Promise<boolean> {
     try {
-      const response = await apiClient.post('/api/inventory/inventory/reserve', {
+      const response = await apiClient.post<ReserveInventoryResponse>('/api/inventory/inventory/reserve', {
         orderId,
         items,
         storeId
       });
-      return response.data.success;
+      return safeGet(response.data, 'success') ?? false;
     } catch (error) {
       return false;
     }
@@ -87,12 +99,12 @@ class InventoryApi {
    */
   async releaseInventory(orderId: string, storeId: string): Promise<boolean> {
     try {
-      const response = await apiClient.post('/api/inventory/inventory/release', {
+      const response = await apiClient.post<ReleaseInventoryResponse>('/api/inventory/inventory/release', {
         orderId,
         storeId,
         reason: 'Order cancelled or timed out'
       });
-      return response.data.success;
+      return safeGet(response.data, 'success') ?? false;
     } catch (error) {
       return false;
     }

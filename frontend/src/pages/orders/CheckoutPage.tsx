@@ -7,10 +7,11 @@ import { useOffline } from '../../hooks/useOffline';
 import { useToast } from '../../hooks/useToast';
 import { cartService } from '../../services/cartService';
 import { syncService } from '../../services/syncService';
-import { PaymentMethod as PaymentMethodType, PaymentStatus } from '../../types/payment.types';
+import { PaymentMethod as PaymentMethodType } from '../../types/payment.types';
+import { PaymentStatus as PaymentStatusType } from '../../types/payment.types';
+import PaymentStatusComponent from '../../components/payment/PaymentStatus';
 import PaymentMethod from '../../components/payment/PaymentMethod';
 import PaymentForm from '../../components/payment/PaymentForm';
-import PaymentStatus from '../../components/payment/PaymentStatus';
 import Modal from '../../components/common/Modal';
 
 const CheckoutPage: React.FC = () => {
@@ -22,14 +23,14 @@ const CheckoutPage: React.FC = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<{
     isVisible: boolean;
-    status: PaymentStatus;
+    status: PaymentStatusType;
     paymentId: string;
     orderId: string;
     amount: number;
     isOffline: boolean;
   }>({
     isVisible: false,
-    status: PaymentStatus.PENDING,
+    status: PaymentStatusType.PENDING,
     paymentId: '',
     orderId: '',
     amount: 0,
@@ -147,7 +148,7 @@ const CheckoutPage: React.FC = () => {
       // Show success status
       setPaymentStatus({
         isVisible: true,
-        status: PaymentStatus.COMPLETED,
+        status: PaymentStatusType.COMPLETED,
         paymentId,
         orderId: 'order123', // Placeholder orderId
         amount: total,
@@ -163,7 +164,7 @@ const CheckoutPage: React.FC = () => {
       // Show failure status
       setPaymentStatus({
         isVisible: true,
-        status: PaymentStatus.FAILED,
+        status: PaymentStatusType.FAILED,
         paymentId: '',
         orderId: 'order123', // Placeholder orderId
         amount: total,
@@ -179,7 +180,7 @@ const CheckoutPage: React.FC = () => {
     setPaymentStatus(prev => ({ ...prev, isVisible: false }));
     
     // Redirect to orders page if payment was successful
-    if (paymentStatus.status === PaymentStatus.COMPLETED) {
+    if (paymentStatus.status === PaymentStatusType.COMPLETED) {
       navigate('/orders');
     }
   };
@@ -254,7 +255,7 @@ const CheckoutPage: React.FC = () => {
         closeOnEsc={false}
         showCloseButton={false}
       >
-        <PaymentStatus
+        <PaymentStatusComponent
           status={paymentStatus.status}
           paymentId={paymentStatus.paymentId}
           orderId={paymentStatus.orderId}

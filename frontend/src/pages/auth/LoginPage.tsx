@@ -1,9 +1,11 @@
+// src/pages/auth/LoginPage.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { safeToString, safeGet } from '../../utils/type-safety';
 
 const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -13,7 +15,7 @@ const LoginPage: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Get redirect path from location state or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = safeGet(location.state as Record<string, unknown> | null, 'from') as string || '/dashboard';
 
   // Validation schema using Yup
   const validationSchema = Yup.object({
@@ -34,8 +36,8 @@ const LoginPage: React.FC = () => {
         await login(values);
         showToast('Login successful', 'success');
         navigate(from, { replace: true });
-      } catch (error: any) {
-        showToast(error.message || 'Login failed', 'error');
+      } catch (error) {
+        showToast(safeToString(error), 'error');
       } finally {
         setIsLoggingIn(false);
       }
@@ -138,7 +140,7 @@ const LoginPage: React.FC = () => {
               </div>
 
               <div className="text-center text-sm">
-                <span className="text-secondary-600">Don't have an account? </span>
+                <span className="text-secondary-600">Don&apos;t have an account? </span>
                 <Link to="/register" className="text-primary-600 hover:text-primary-500">
                   Register
                 </Link>
