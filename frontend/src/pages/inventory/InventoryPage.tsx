@@ -24,6 +24,14 @@ const InventoryPage: React.FC = () => {
   // Products per page
   const limit = 12;
 
+  // Function to safely check and access product properties
+  const safeString = (value: unknown): string => {
+    if (typeof value === 'string') {
+      return value.toLowerCase();
+    }
+    return '';
+  };
+
   // Function to load products from API or storage
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
@@ -35,17 +43,28 @@ const InventoryPage: React.FC = () => {
           selectedCategory ? { category: selectedCategory } : undefined
         );
         
-        // Apply client-side filtering and sorting
-        let filteredProducts = [...cachedProducts];
+        // Apply client-side filtering and sorting - Cast to Product[] for type safety
+        const typedProducts = cachedProducts as Product[];
+        let filteredProducts: Product[] = [];
+        
+        // Safely copy products with type safety
+        if (Array.isArray(typedProducts)) {
+          filteredProducts = [...typedProducts];
+        }
         
         // Apply search filter
         if (searchQuery) {
           const query = searchQuery.toLowerCase();
           filteredProducts = filteredProducts.filter(
-            (product) =>
-              product.name.toLowerCase().includes(query) ||
-              product.sku.toLowerCase().includes(query) ||
-              product.description?.toLowerCase().includes(query)
+            (product) => {
+              const name = safeString(product.name);
+              const sku = safeString(product.sku);
+              const description = safeString(product.description);
+              
+              return name.includes(query) || 
+                     sku.includes(query) || 
+                     description.includes(query);
+            }
           );
         }
         
@@ -54,9 +73,13 @@ const InventoryPage: React.FC = () => {
           let comparison = 0;
           
           if (sortBy === 'name') {
-            comparison = a.name.localeCompare(b.name);
+            const nameA = safeString(a.name);
+            const nameB = safeString(b.name);
+            comparison = nameA.localeCompare(nameB);
           } else if (sortBy === 'price') {
-            comparison = a.price - b.price;
+            const priceA = typeof a.price === 'number' ? a.price : 0;
+            const priceB = typeof b.price === 'number' ? b.price : 0;
+            comparison = priceA - priceB;
           }
           
           return sortOrder === 'asc' ? comparison : -comparison;

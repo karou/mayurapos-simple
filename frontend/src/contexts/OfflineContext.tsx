@@ -54,13 +54,13 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     };
 
-    checkPendingSync();
+    void checkPendingSync(); // Fix: add void operator to handle the floating promise
   }, []);
 
   // Attempt to sync when coming back online
   useEffect(() => {
     if (isOnline && hasPendingSync && !isOfflineMode) {
-      syncWithServer();
+      void syncWithServer(); // Fix: add void operator to handle the floating promise
     }
   }, [isOnline, hasPendingSync, isOfflineMode]);
 
@@ -83,7 +83,7 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     // Attempt to sync if we're online and have pending changes
     if (isOnline && hasPendingSync) {
-      syncWithServer();
+      void syncWithServer(); // Fix: add void operator to handle the floating promise
     }
   };
 

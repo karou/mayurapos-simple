@@ -26,21 +26,234 @@ const ProductDetailsPage: React.FC = () => {
       try {
         if (isOfflineMode) {
           // Try to load from local storage
-          const products = await storageService.getProducts();
-          const foundProduct = products.find((p) => p.productId === productId);
+          const productsData = await storageService.getProducts();
+          
+          // Try to load from local storage with full type safety
+          try {
+            // First get raw data from storage
+            const rawData = await storageService.getProducts();
+            
+            // Verify we have an array to work with
+            if (!Array.isArray(rawData)) {
+              throw new Error("Storage did not return an array");
+            }
+            
+            // Use a safer approach - we'll manually loop and check types
+            // without directly accessing properties on potentially unsafe objects
+            let matchingItem: Record<string, unknown> | null = null;
+            
+            for (let i = 0; i < rawData.length; i++) {
+              const item = rawData[i];
+              
+              // Very carefully check type and existence of properties
+              if (item === null || typeof item !== 'object') continue;
+              
+              // Skip to safe access patterns without intermediate assignment
+              if (!('productId' in item)) continue;
+              
+              // Safe access after property existence check
+              const potentialId = (item as Record<string, unknown>).productId;
+              if (typeof potentialId !== 'string') continue;
+              
+              // Now check if it matches our target productId
+              if (potentialId === productId) {
+                matchingItem = item as Record<string, unknown>;
+                break;
+              }
+            }
+            
+            // If no matching item found, throw error to handle in catch block
+            if (!matchingItem) {
+              throw new Error("Product not found in offline storage");
+            }
+            
+            // Now we'll manually construct a type-safe product object
+            // Create safe getter functions for different property types
+            const safeString = (obj: unknown, prop: string): string => {
+              if (obj && typeof obj === 'object' && prop in obj) {
+                const value = (obj as Record<string, unknown>)[prop];
+                return typeof value === 'string' ? value : '';
+              }
+              return '';
+            };
+            
+            const safeNumber = (obj: unknown, prop: string): number => {
+              if (obj && typeof obj === 'object' && prop in obj) {
+                const value = (obj as Record<string, unknown>)[prop];
+                return typeof value === 'number' ? value : 0;
+              }
+              return 0;
+            };
+            
+            const safeBoolean = (obj: unknown, prop: string): boolean => {
+              if (obj && typeof obj === 'object' && prop in obj) {
+                const value = (obj as Record<string, unknown>)[prop];
+                return typeof value === 'boolean' ? value : false;
+              }
+              return false;
+            };
+            
+            // Type safe array checking
+            const safeArray = (obj: unknown, prop: string): unknown[] => {
+              if (obj && typeof obj === 'object' && prop in obj) {
+                const value = (obj as Record<string, unknown>)[prop];
+                return Array.isArray(value) ? value : [];
+              }
+              return [];
+            };
+            
+            // Type safe object checking
+            const safeObject = (obj: unknown, prop: string): Record<string, unknown> => {
+              if (obj && typeof obj === 'object' && prop in obj) {
+                const value = (obj as Record<string, unknown>)[prop];
+                return value && typeof value === 'object' && !Array.isArray(value) 
+                  ? value as Record<string, unknown> 
+                  : {};
+              }
+              return {};
+            };
+            
+            // Build a properly typed inventory array
+            const inventory: Array<{
+              inventoryId: string;
+              productId: string;
+              storeId: string;
+              quantity: number;
+              reservedQuantity: number;
+              availableQuantity: number;
+              backorderEnabled: boolean;
+              backorderLimit: number;
+              reorderPoint: number;
+              reorderQuantity: number;
+              lastRestockedAt: string;
+              locationInStore: string;
+            }> = [];
+            
+            // Safely process inventory array
+            const rawInventory = safeArray(matchingItem, 'inventory');
+            for (const inv of rawInventory) {
+              if (inv && typeof inv === 'object') {
+                inventory.push({
+                  inventoryId: safeString(inv, 'inventoryId'),
+                  productId: safeString(inv, 'productId'),
+                  storeId: safeString(inv, 'storeId'),
+                  quantity: safeNumber(inv, 'quantity'),
+                  reservedQuantity: safeNumber(inv, 'reservedQuantity'),
+                  availableQuantity: safeNumber(inv, 'availableQuantity'),
+                  backorderEnabled: safeBoolean(inv, 'backorderEnabled'),
+                  backorderLimit: safeNumber(inv, 'backorderLimit'),
+                  reorderPoint: safeNumber(inv, 'reorderPoint'),
+                  reorderQuantity: safeNumber(inv, 'reorderQuantity'),
+                  lastRestockedAt: safeString(inv, 'lastRestockedAt'),
+                  locationInStore: safeString(inv, 'locationInStore')
+                });
+              }
+            }
+            
+            // Now build a complete product with proper typing
+            const safeProduct: ProductWithInventory = {
+              productId: safeString(matchingItem, 'productId'),
+              name: safeString(matchingItem, 'name'),
+              sku: safeString(matchingItem, 'sku'),
+              description: safeString(matchingItem, 'description'),
+              category: safeString(matchingItem, 'category'),
+              price: safeNumber(matchingItem, 'price'),
+              costPrice: safeNumber(matchingItem, 'costPrice'),
+              taxRate: safeNumber(matchingItem, 'taxRate'),
+              isActive: safeBoolean(matchingItem, 'isActive'),
+              createdAt: safeString(matchingItem, 'createdAt'),
+              updatedAt: safeString(matchingItem, 'updatedAt'),
+              barcode: safeString(matchingItem, 'barcode'),
+              images: safeArray(matchingItem, 'images').map(img => 
+                typeof img === 'string' ? img : ''
+              ).filter(Boolean),
+              attributes: safeObject(matchingItem, 'attributes'),
+              inventory
+            };
+            
+            // Set the product to state - safeProduct is already typed as ProductWithInventory
+            setProduct(safeProduct);
+          } catch (error) {
+            console.error('Failed to load product from storage:', error);
+            showToast('Product not found in offline storage', 'error');
+            navigate('/inventory');
+          }
+            
           if (foundProduct) {
-            setProduct(foundProduct as ProductWithInventory);
+            setProduct(foundProduct);
           } else {
             showToast('Product not found in offline storage', 'error');
             navigate('/inventory');
           }
         } else {
-          // Load from API
-          const data = await inventoryApi.getProduct(productId);
-          setProduct(data);
-          
-          // Store product in local storage for offline use
-          await storageService.storeProducts([data]);
+          try {
+            // Load from API
+            const response = await inventoryApi.getProduct(productId);
+            
+            // Create our own type-safe copies of the returned data
+            
+            // Process inventory data
+            const inventory = (Array.isArray(response.inventory) ? response.inventory : [])
+              .map(inv => ({
+                inventoryId: typeof inv.inventoryId === 'string' ? inv.inventoryId : '',
+                productId: typeof inv.productId === 'string' ? inv.productId : '',
+                storeId: typeof inv.storeId === 'string' ? inv.storeId : '',
+                quantity: typeof inv.quantity === 'number' ? inv.quantity : 0,
+                reservedQuantity: typeof inv.reservedQuantity === 'number' ? inv.reservedQuantity : 0,
+                availableQuantity: typeof inv.availableQuantity === 'number' ? inv.availableQuantity : 0,
+                backorderEnabled: typeof inv.backorderEnabled === 'boolean' ? inv.backorderEnabled : false,
+                backorderLimit: typeof inv.backorderLimit === 'number' ? inv.backorderLimit : 0,
+                reorderPoint: typeof inv.reorderPoint === 'number' ? inv.reorderPoint : 0, 
+                reorderQuantity: typeof inv.reorderQuantity === 'number' ? inv.reorderQuantity : 0,
+                lastRestockedAt: typeof inv.lastRestockedAt === 'string' ? inv.lastRestockedAt : '',
+                locationInStore: typeof inv.locationInStore === 'string' ? inv.locationInStore : ''
+              }));
+            
+            // Process images array
+            const images = Array.isArray(response.images) 
+              ? response.images.filter(img => typeof img === 'string') 
+              : [];
+            
+            // Process attributes object
+            const attributes: Record<string, unknown> = {};
+            if (response.attributes && typeof response.attributes === 'object') {
+              Object.entries(response.attributes).forEach(([key, value]) => {
+                attributes[key] = value;
+              });
+            }
+            
+            // Create a properly typed product object
+            const typedProduct: ProductWithInventory = {
+              productId: typeof response.productId === 'string' ? response.productId : '',
+              name: typeof response.name === 'string' ? response.name : '',
+              sku: typeof response.sku === 'string' ? response.sku : '',
+              description: typeof response.description === 'string' ? response.description : '',
+              category: typeof response.category === 'string' ? response.category : '',
+              price: typeof response.price === 'number' ? response.price : 0,
+              costPrice: typeof response.costPrice === 'number' ? response.costPrice : 0,
+              taxRate: typeof response.taxRate === 'number' ? response.taxRate : 0,
+              isActive: typeof response.isActive === 'boolean' ? response.isActive : false,
+              createdAt: typeof response.createdAt === 'string' ? response.createdAt : '',
+              updatedAt: typeof response.updatedAt === 'string' ? response.updatedAt : '',
+              barcode: typeof response.barcode === 'string' ? response.barcode : '',
+              images,
+              attributes,
+              inventory
+            };
+            
+            // Explicitly type the final product
+            const finalProduct: ProductWithInventory = typedProduct;
+            
+            // Save the typed product to state with explicit type assertion
+            setProduct(finalProduct as ProductWithInventory);
+            
+            // Store in local storage for offline use
+            await storageService.storeProducts([finalProduct]);
+          } catch (error) {
+            console.error('Failed to load product:', error);
+            showToast('Failed to load product details', 'error');
+            navigate('/inventory');
+          }
         }
       } catch (error) {
         console.error('Failed to load product:', error);
@@ -120,7 +333,7 @@ const ProductDetailsPage: React.FC = () => {
       <div className="rounded-lg bg-white p-8 text-center shadow-sm">
         <h2 className="text-xl font-medium text-secondary-900">Product not found</h2>
         <p className="mt-2 text-secondary-600">
-          The product you're looking for doesn't exist or has been removed.
+          The product you&apos;re looking for doesn&apos;t exist or has been removed.
         </p>
         <button
           onClick={() => navigate('/inventory')}
