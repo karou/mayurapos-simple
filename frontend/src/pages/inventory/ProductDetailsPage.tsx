@@ -50,7 +50,7 @@ const ProductDetailsPage: React.FC = () => {
       }
     };
 
-    loadProduct();
+    void loadProduct();
   }, [productId, isOfflineMode, navigate, showToast]);
 
   // Initialize quantity from cart if already in cart

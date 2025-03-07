@@ -6,13 +6,11 @@ import {
   OrderStatus, 
   OrderSearchParams, 
   OrderSummary,
-  OrderStats,
-  PaginatedResponse
+  OrderStats
 } from '../types/order.types';
 import { CartItem } from '../types/inventory.types';
-import { safeGet } from '../utils/type-safety';
 
-// Add these interfaces to properly type the responses
+// Properly typed interface definitions
 interface StatusUpdateResponse {
   orderId: string;
   status: OrderStatus;
@@ -28,6 +26,16 @@ interface OrdersResponse {
   };
 }
 
+interface PaginatedResponse<T> {
+  items: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
 class OrderApi {
   /**
    * Create a new order
@@ -35,7 +43,7 @@ class OrderApi {
   async createOrder(
     items: CartItem[],
     isOfflineOrder: boolean = false,
-    metadata: Record<string, any> = {}
+    metadata: Record<string, unknown> = {}
   ): Promise<Order> {
     const orderItems: OrderItem[] = items.map(item => ({
       productId: item.productId,
@@ -98,8 +106,8 @@ class OrderApi {
   async updateOrder(
     orderId: string,
     items: OrderItem[],
-    shippingAddress?: any,
-    billingAddress?: any,
+    shippingAddress?: Record<string, unknown>,
+    billingAddress?: Record<string, unknown>,
     notes?: string
   ): Promise<Order> {
     const response = await apiClient.put<Order>(`/api/orders/orders/${orderId}`, {
@@ -164,8 +172,8 @@ class OrderApi {
   async confirmOrder(
     orderId: string,
     paymentMethod?: string,
-    shippingAddress?: any,
-    billingAddress?: any
+    shippingAddress?: Record<string, unknown>,
+    billingAddress?: Record<string, unknown>
   ): Promise<Order> {
     const response = await apiClient.post<Order>(`/api/orders/orders/${orderId}/confirm`, {
       paymentMethod,

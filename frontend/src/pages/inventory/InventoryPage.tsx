@@ -124,7 +124,7 @@ const InventoryPage: React.FC = () => {
 
   // Load products when dependencies change
   useEffect(() => {
-    loadProducts();
+    void loadProducts();
   }, [loadProducts]);
 
   // Handle search input

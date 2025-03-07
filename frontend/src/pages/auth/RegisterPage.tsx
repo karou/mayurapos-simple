@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 
+
 const RegisterPage: React.FC = () => {
   const { register } = useAuth();
   const { showToast } = useToast();
@@ -29,7 +30,7 @@ const RegisterPage: React.FC = () => {
   });
 
   // Initialize formik
-  const formik = useFormik({
+const formik = useFormik({
     initialValues: {
       username: '',
       email: '',
@@ -43,8 +44,10 @@ const RegisterPage: React.FC = () => {
         await register(values);
         showToast('Registration successful', 'success');
         navigate('/dashboard', { replace: true });
-      } catch (error: any) {
-        showToast(error.message || 'Registration failed', 'error');
+      } catch (error) {
+        // Fixed: Type-safe error message extraction
+        const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+        showToast(errorMessage, 'error');
       } finally {
         setIsRegistering(false);
       }

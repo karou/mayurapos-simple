@@ -28,7 +28,7 @@ const DashboardPage: React.FC = () => {
         setIsLoading(false);
         return;
       }
-
+  
       try {
         // Load order statistics
         const stats = await orderApi.getOrderStats(firstDayStr, todayStr);
@@ -43,8 +43,8 @@ const DashboardPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-
-    loadDashboardData();
+  
+    void loadDashboardData(); // Fixed: added void operator to handle the promise
   }, [isOfflineMode, firstDayStr, todayStr]);
 
   // Dashboard quick action card component
