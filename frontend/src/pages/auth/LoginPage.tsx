@@ -1,11 +1,12 @@
-// src/pages/auth/LoginPage.tsx
+// Updated LoginPage.tsx with error handling
+
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { safeToString, safeGet } from '../../utils/type-safety';
+import { safeToString } from '../../utils/type-safety';
 
 const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -14,8 +15,13 @@ const LoginPage: React.FC = () => {
   const location = useLocation();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Get redirect path from location state or default to dashboard
-  const from = safeGet(location.state as Record<string, unknown> | null, 'from') as string || '/dashboard';
+  // Safely get redirect path from location state or default to dashboard
+  const from = location.state && 
+               typeof location.state === 'object' && 
+               'from' in location.state && 
+               typeof location.state.from === 'string' 
+               ? location.state.from 
+               : '/dashboard';
 
   // Validation schema using Yup
   const validationSchema = Yup.object({
@@ -23,7 +29,7 @@ const LoginPage: React.FC = () => {
     password: Yup.string().required('Password is required'),
   });
 
-  // Initialize formik
+  // Initialize formik with safe error handling
   const formik = useFormik({
     initialValues: {
       username: '',
@@ -31,13 +37,18 @@ const LoginPage: React.FC = () => {
     },
     validationSchema,
     onSubmit: async (values) => {
+      if (!values.username || !values.password) {
+        showToast('Username and password are required', 'error');
+        return;
+      }
+      
       setIsLoggingIn(true);
       try {
         await login(values);
         showToast('Login successful', 'success');
         navigate(from, { replace: true });
       } catch (error) {
-        showToast(safeToString(error), 'error');
+        showToast(safeToString(error) || 'Login failed', 'error');
       } finally {
         setIsLoggingIn(false);
       }

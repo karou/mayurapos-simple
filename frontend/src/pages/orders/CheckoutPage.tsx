@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
+//import { useFormik } from 'formik';
+//import * as Yup from 'yup';
 import { useCart } from '../../hooks/useCart';
 import { useOffline } from '../../hooks/useOffline';
 import { useToast } from '../../hooks/useToast';
-import { cartService } from '../../services/cartService';
 import { syncService } from '../../services/syncService';
 import { PaymentMethod as PaymentMethodType } from '../../types/payment.types';
 import { PaymentStatus as PaymentStatusType } from '../../types/payment.types';
@@ -45,7 +44,7 @@ const CheckoutPage: React.FC = () => {
   }, [items, navigate]);
 
   // Form validation schema for shipping/billing info
-  const validationSchema = Yup.object({
+  /*const validationSchema = Yup.object({
     name: Yup.string().required('Name is required'),
     email: Yup.string().email('Invalid email address').required('Email is required'),
     address: Yup.string().required('Address is required'),
@@ -53,10 +52,10 @@ const CheckoutPage: React.FC = () => {
     state: Yup.string().required('State is required'),
     zip: Yup.string().required('ZIP code is required'),
     sameAsBilling: Yup.boolean(),
-  });
+  });*/
 
   // Initialize formik
-  const formik = useFormik({
+  /*const formik = useFormik({
     initialValues: {
       name: '',
       email: '',
@@ -115,14 +114,14 @@ const CheckoutPage: React.FC = () => {
         showToast('Failed to create order', 'error');
       }
     },
-  });
+  });*/
 
   // Handle proceeding to payment after order creation
-  const handleProceedToPayment = (orderId: string) => {
+  /*const handleProceedToPayment = (orderId: string) => {
     // In a real implementation, this would show the payment form
     // or redirect to a payment gateway
     console.log('Proceeding to payment for order:', orderId);
-  };
+  };*/
 
   // Handle payment submission
   const handlePaymentSubmit = async (paymentData: any) => {

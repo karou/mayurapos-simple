@@ -1,4 +1,5 @@
-// src/api/apiClient.ts
+// Updated apiClient.ts with improved error handling
+
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { storageService } from '../services/storageService';
 
@@ -24,7 +25,7 @@ class ApiClient {
 
   constructor() {
     this.instance = axios.create({
-      baseURL: API_URLS[environment as keyof typeof API_URLS],
+      baseURL: API_URLS[environment],
       headers: {
         'Content-Type': 'application/json',
       },
@@ -38,11 +39,16 @@ class ApiClient {
     // Request interceptor to attach auth token
     this.instance.interceptors.request.use(
       async (config) => {
-        const token = await storageService.getItem('token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        try {
+          const token = await storageService.getItem('token');
+          if (token && config.headers) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+          return config;
+        } catch (error) {
+          console.error('Error attaching auth token:', error);
+          return config;
         }
-        return config;
       },
       (error) => Promise.reject(error)
     );
@@ -52,6 +58,16 @@ class ApiClient {
       (response) => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        
+        // Check if error is due to network issues
+        if (!error.response) {
+          console.error('Network error or server not reachable:', error.message);
+          return Promise.reject({
+            isNetworkError: true,
+            message: 'Network error or server not reachable',
+            originalError: error,
+          });
+        }
 
         // If 401 error and not already retrying
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -79,54 +95,75 @@ class ApiClient {
             if (!refreshToken) {
               // No refresh token, must login again
               this.processFailedQueue(false);
-              return Promise.reject(error);
+              return Promise.reject(new Error('Authentication required. Please log in again.'));
             }
 
-            const response = await this.instance.post('/auth/refresh-token', { refreshToken });
+            const response = await this.instance.post<RefreshTokenResponse>('/auth/refresh-token', { refreshToken });
             
-            // Fix: Properly check and type the response data
-            if (response.data && typeof response.data === 'object') {
-              const responseData = response.data as RefreshTokenResponse;
-              
-              if (responseData.token) {
-                const newToken = responseData.token;
-                await storageService.setItem('token', newToken);
-                
-                // Process queued requests with success
-                this.processFailedQueue(true);
-                
-                // Update auth header and retry original request
-                if (originalRequest.headers) {
-                  originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                }
-                
-                return this.instance(originalRequest);
-              }
+            // Check if response is valid
+            if (!response.data || !response.data.token) {
+              throw new Error('Invalid response from refresh token endpoint');
             }
             
-            // No new token received
-            this.processFailedQueue(false);
-            return Promise.reject(error);
+            const newToken = response.data.token;
+            await storageService.setItem('token', newToken);
+            
+            // Process queued requests with success
+            this.processFailedQueue(true);
+            
+            // Update auth header and retry original request
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            } else {
+              originalRequest.headers = { Authorization: `Bearer ${newToken}` };
+            }
+            
+            return this.instance(originalRequest);
           } catch (refreshError) {
-            // Failed to refresh token
+            console.error('Token refresh failed:', refreshError);
+            
+            // Clear auth tokens on refresh failure
+            await storageService.removeItem('token');
+            await storageService.removeItem('refreshToken');
+            await storageService.removeItem('user');
+            
+            // Fail all queued requests
             this.processFailedQueue(false);
-            return Promise.reject(refreshError);
+            
+            // Return a more specific error
+            return Promise.reject(new Error('Session expired. Please log in again.'));
           } finally {
             this.isRefreshing = false;
           }
         }
 
-        // Handle network errors for offline support
-        if (error.message === 'Network Error') {
-          // Return a specific error for the sync service to handle
-          return Promise.reject({
-            isNetworkError: true,
-            originalError: error,
-            originalRequest,
-          });
+        // Format the error message for better debugging
+        let errorMessage = 'An error occurred';
+        
+        if (error.response?.data) {
+          // Try to extract error message from response data
+          if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          } else if (typeof error.response.data === 'object') {
+            errorMessage = Object(error.response.data).message || 
+            Object(error.response.data).error || 
+                           error.response.statusText || 
+                           `Error ${error.response.status}`;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
         }
 
-        return Promise.reject(error);
+        // Create a better error object
+        const enhancedError = {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          message: errorMessage,
+          originalError: error,
+          data: error.response?.data,
+        };
+
+        return Promise.reject(enhancedError);
       }
     );
   }

@@ -16,7 +16,7 @@ class CartService {
    */
   async createOrder(
     items: CartItem[], 
-    isOffline: boolean = false,
+    isOffline = false,
     metadata: Record<string, any> = {}
   ): Promise<{ orderId: string; success: boolean }> {
     try {
@@ -48,7 +48,7 @@ class CartService {
     paymentMethod?: string,
     shippingAddress?: any,
     billingAddress?: any,
-    isOffline: boolean = false
+    isOffline = false
   ): Promise<{ success: boolean }> {
     try {
       if (isOffline) {
@@ -92,7 +92,7 @@ class CartService {
   async cancelOrder(
     orderId: string,
     reason?: string,
-    isOffline: boolean = false
+    isOffline = false
   ): Promise<{ success: boolean }> {
     try {
       if (isOffline) {
@@ -138,7 +138,7 @@ class CartService {
    * @param items Cart items
    * @param taxRate Tax rate (default: 0.07 or 7%)
    */
-  calculateTotals(items: CartItem[], taxRate: number = 0.07): { 
+  calculateTotals(items: CartItem[], taxRate = 0.07): { 
     subtotal: number; 
     tax: number; 
     total: number 

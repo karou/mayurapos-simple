@@ -30,12 +30,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showAddToCart = true
   // Get stock status
   const getStockStatus = (): { text: string; color: string } => {
     // Safely access inventory data
-    const inventory = safeGet(product, 'inventory');
-    const firstInventory = isArray(inventory) && inventory.length > 0 ? inventory[0] : null;
-    
-    if (!firstInventory) {
-      return { text: 'Unknown', color: 'bg-secondary-100 text-secondary-800' };
-    }
+    const inventory = safeGet(product as unknown as Record<string, unknown>, 'inventory');
+    const firstInventory = isArray(inventory) && inventory.length > 0 
+    ? inventory[0] as Record<string, unknown>
+    : null;
+  
+  if (!firstInventory) {
+    return { text: 'Unknown', color: 'bg-secondary-100 text-secondary-800' };
+  }
 
     const quantity = safeGet(firstInventory, 'availableQuantity') ?? 0;
     const reorderPoint = safeGet(firstInventory, 'reorderPoint') ?? 0;

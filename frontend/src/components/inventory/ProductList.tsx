@@ -116,12 +116,12 @@ const ProductList: React.FC<ProductListProps> = ({ initialFilters = {} }) => {
           category: searchParams.category === 'All Categories' ? undefined : searchParams.category
         });
         
-        setProducts(response.products);
+        setProducts(response.items);
         setTotalProducts(response.pagination.total);
         setTotalPages(response.pagination.pages);
         
         // Cache products for offline use
-        await storageService.storeProducts(response.products);
+        await storageService.storeProducts(response.items);
       }
     } catch (error) {
       console.error('Failed to load products:', error);

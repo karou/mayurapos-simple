@@ -265,15 +265,43 @@ export class AuthService extends BaseService {
   }
 
   /**
-   * Register a new user
-   */
-  private async register(req: Request, res: Response): Promise<void> {
+ * Register a new user
+ */
+private async register(req: Request, res: Response): Promise<void> {
     try {
+      // Log the incoming request for debugging
+      this.logger.debug('Register request received', { 
+        body: req.body,
+        contentType: req.headers['content-type'] 
+      });
+      
       const { username, email, password } = req.body;
       
-      // Validate input
-      if (!username || !email || !password) {
-        res.status(400).json({ message: 'Username, email and password are required' });
+      // Enhanced validation with detailed feedback
+      const missingFields = [];
+      if (!username) missingFields.push('username');
+      if (!email) missingFields.push('email');
+      if (!password) missingFields.push('password');
+      
+      if (missingFields.length > 0) {
+        const message = `Missing required fields: ${missingFields.join(', ')}`;
+        this.logger.warn(`Registration validation failed: ${message}`, { 
+          receivedBody: req.body 
+        });
+        res.status(400).json({ message, received: req.body });
+        return;
+      }
+      
+      // Enhanced email validation
+      const emailRegex = /^\S+@\S+\.\S+$/;
+      if (!emailRegex.test(email)) {
+        res.status(400).json({ message: 'Invalid email format' });
+        return;
+      }
+      
+      // Password strength validation
+      if (password.length < 8) {
+        res.status(400).json({ message: 'Password must be at least 8 characters long' });
         return;
       }
       

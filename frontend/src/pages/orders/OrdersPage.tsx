@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useOffline } from '../../hooks/useOffline';
 import { useToast } from '../../hooks/useToast';
 import { orderApi } from '../../api/orderApi';
 import { OrderStatus, OrderSummary } from '../../types/order.types';
 import OrderList from '../../components/orders/OrderList';
 
 const OrdersPage: React.FC = () => {
-  const { isOfflineMode } = useOffline();
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<OrderSummary[]>([]);
@@ -19,7 +17,6 @@ const OrdersPage: React.FC = () => {
       setIsLoading(true);
       try {
         // In a real app, this would get the customerId from the auth context
-        const customerId = 'current-user-id';
         
         const params: any = {
           page: currentPage,
@@ -42,7 +39,7 @@ const OrdersPage: React.FC = () => {
       }
     };
 
-    loadOrders();
+    void loadOrders();
   }, [currentPage, selectedStatus, showToast]);
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

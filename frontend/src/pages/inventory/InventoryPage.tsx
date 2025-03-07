@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useOffline } from '../../contexts/OfflineContext';
 import { useToast } from '../../contexts/ToastContext';
 import { inventoryApi } from '../../api/inventoryApi';
@@ -8,7 +7,6 @@ import { Product, ProductSearchParams } from '../../types/inventory.types';
 import ProductCard from '../../components/inventory/ProductCard';
 
 const InventoryPage: React.FC = () => {
-  const navigate = useNavigate();
   const { isOfflineMode } = useOffline();
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);

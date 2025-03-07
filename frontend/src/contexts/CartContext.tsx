@@ -1,7 +1,6 @@
 // src/contexts/CartContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
-import { cartService } from '../services/cartService';
 import { Product, CartItem } from '../types/inventory.types';
 import { safeJsonParse } from '../utils/type-safety';
 

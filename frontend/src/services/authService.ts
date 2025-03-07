@@ -1,3 +1,5 @@
+// Updated authService.ts with improved error handling
+
 import { authApi } from '../api/authApi';
 import { storageService } from './storageService';
 import { LoginCredentials, RegisterCredentials, User, AuthResponse } from '../types/auth.types';
@@ -11,8 +13,27 @@ class AuthService {
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
+      // Validate input to prevent 'length' property errors
+      if (!credentials || typeof credentials !== 'object') {
+        throw new Error('Invalid credentials format');
+      }
+      
+      if (!credentials.username || typeof credentials.username !== 'string') {
+        throw new Error('Username is required');
+      }
+      
+      if (!credentials.password || typeof credentials.password !== 'string') {
+        throw new Error('Password is required');
+      }
+      
       // Call API to login
       const response = await authApi.login(credentials);
+      
+      // Validate response
+      if (!response || !response.accessToken || !response.user) {
+        throw new Error('Invalid response from authentication server');
+      }
+      
       return response;
     } catch (error: any) {
       // Handle specific error cases
@@ -20,7 +41,7 @@ class AuthService {
         throw new Error('Invalid username or password');
       }
       
-      throw new Error(error.response?.data?.message || 'Login failed');
+      throw new Error(error.response?.data?.message || error.message || 'Login failed');
     }
   }
 
@@ -29,7 +50,16 @@ class AuthService {
    */
   async register(userData: RegisterCredentials): Promise<User> {
     try {
+      // Validate input
+      if (!userData || typeof userData !== 'object') {
+        throw new Error('Invalid user data format');
+      }
+      
       // Validate password match
+      if (!userData.password || !userData.confirmPassword) {
+        throw new Error('Password fields cannot be empty');
+      }
+      
       if (userData.password !== userData.confirmPassword) {
         throw new Error('Passwords do not match');
       }
@@ -43,7 +73,7 @@ class AuthService {
         throw new Error('Username or email already exists');
       }
       
-      throw new Error(error.response?.data?.message || 'Registration failed');
+      throw new Error(error.response?.data?.message || error.message || 'Registration failed');
     }
   }
 
@@ -84,6 +114,11 @@ class AuthService {
     try {
       // Call API to refresh the token
       const response = await authApi.refreshToken(refreshToken);
+      
+      // Validate response
+      if (!response || !response.token) {
+        throw new Error('Invalid token refresh response');
+      }
       
       // Store new token
       await storageService.setItem('token', response.token);

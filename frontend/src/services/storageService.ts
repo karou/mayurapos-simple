@@ -198,7 +198,7 @@ class StorageService {
         status: 'pending',
         timestamp: new Date().toISOString()
       });
-      return id;
+      return id as number;
     } catch (error) {
       console.error('Error adding to offline queue', error);
       throw error;

@@ -93,7 +93,7 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
-        state.token = action.payload.token;
+        state.token = action.payload.accessToken;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
@@ -105,7 +105,7 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(register.fulfilled, (state, action) => {
+      .addCase(register.fulfilled, (state) => {
         state.isLoading = false;
         // We don't set user here because we expect to login after registration
       })

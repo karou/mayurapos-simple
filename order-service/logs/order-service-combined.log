@@ -1,0 +1,18 @@
+{"level":"info","message":"Connected to MongoDB: mongodb://localhost:27017/mayura-order","service":"order-service","timestamp":"2025-03-06T12:57:16.032Z"}
+{"level":"info","message":"Connected to RabbitMQ: amqp://localhost","service":"order-service","timestamp":"2025-03-06T12:57:16.092Z"}
+{"level":"info","message":"Connected to Redis: redis://localhost:6379","service":"order-service","timestamp":"2025-03-06T12:57:16.093Z"}
+{"level":"info","message":"order-service running on port 3004","service":"order-service","timestamp":"2025-03-06T12:57:16.095Z"}
+{"level":"info","message":"Connected to RabbitMQ","service":"order-service","timestamp":"2025-03-06T12:57:16.161Z"}
+{"level":"info","message":"Message topology restored after reconnection","service":"order-service","timestamp":"2025-03-06T12:57:16.161Z"}
+{"level":"info","message":"Subscribed to queue: order.payment.events","service":"order-service","timestamp":"2025-03-06T12:57:16.168Z"}
+{"level":"info","message":"Subscribed to queue: order.inventory.events","service":"order-service","timestamp":"2025-03-06T12:57:16.169Z"}
+{"level":"info","message":"Subscribed to queue: order.delivery.events","service":"order-service","timestamp":"2025-03-06T12:57:16.169Z"}
+{"ip":"::1","level":"info","message":"GET /orders/stats/summary?startDate=2025-03-05T15:00:00.000Z&endDate=2025-03-06T14:59:59.999Z","service":"order-service","timestamp":"2025-03-06T15:00:00.183Z","userAgent":"axios/1.8.1"}
+{"ip":"::1","level":"info","message":"GET /orders/stats/summary?startDate=2025-03-06T15:00:00.000Z&endDate=2025-03-07T14:59:59.999Z","service":"order-service","timestamp":"2025-03-07T15:00:02.268Z","userAgent":"axios/1.8.1"}
+{"ip":"::1","level":"info","message":"GET /orders/stats/summary?startDate=2025-02-28&endDate=2025-03-07","service":"order-service","timestamp":"2025-03-07T15:24:00.968Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /orders/stats/summary?startDate=2025-02-28&endDate=2025-03-07","service":"order-service","timestamp":"2025-03-07T15:24:00.982Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /orders/stats/summary?startDate=2025-02-28&endDate=2025-03-07","service":"order-service","timestamp":"2025-03-07T15:24:35.798Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /orders/stats/summary?startDate=2025-02-28&endDate=2025-03-07","service":"order-service","timestamp":"2025-03-07T15:24:35.811Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /orders/stats/summary?startDate=2025-02-28&endDate=2025-03-07","service":"order-service","timestamp":"2025-03-07T15:24:47.796Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"}
+{"ip":"::1","level":"info","message":"GET /orders/stats/summary?startDate=2025-02-28&endDate=2025-03-07","service":"order-service","timestamp":"2025-03-07T15:24:47.808Z","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"}
+{"level":"info","message":"Shutting down order-service","service":"order-service","timestamp":"2025-03-07T15:26:34.443Z"}

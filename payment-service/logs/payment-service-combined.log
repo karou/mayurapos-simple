@@ -1,0 +1,8 @@
+{"level":"info","message":"Connected to MongoDB: mongodb://localhost:27017/mayura-payment","service":"payment-service","timestamp":"2025-03-06T12:57:09.242Z"}
+{"level":"info","message":"Connected to RabbitMQ: amqp://localhost","service":"payment-service","timestamp":"2025-03-06T12:57:09.302Z"}
+{"level":"info","message":"Connected to Redis: redis://localhost:6379","service":"payment-service","timestamp":"2025-03-06T12:57:09.303Z"}
+{"level":"info","message":"payment-service running on port 3002","service":"payment-service","timestamp":"2025-03-06T12:57:09.305Z"}
+{"level":"info","message":"Connected to RabbitMQ","service":"payment-service","timestamp":"2025-03-06T12:57:09.361Z"}
+{"level":"info","message":"Message topology restored after reconnection","service":"payment-service","timestamp":"2025-03-06T12:57:09.361Z"}
+{"level":"info","message":"Subscribed to queue: payment.order.events","service":"payment-service","timestamp":"2025-03-06T12:57:09.366Z"}
+{"level":"info","message":"Shutting down payment-service","service":"payment-service","timestamp":"2025-03-07T15:26:36.877Z"}

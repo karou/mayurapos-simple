@@ -1,3 +1,5 @@
+// api-gateway/src/index.ts - Complete rewrite of proxy handling
+
 import express, { Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware, Options } from 'http-proxy-middleware';
 import cors from 'cors';
@@ -7,6 +9,7 @@ import jwt from 'jsonwebtoken';
 import winston from 'winston';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
+import http from 'http';
 
 // Environment variables (would be loaded from .env in a real application)
 const PORT = parseInt(process.env.PORT || '8000');
@@ -28,6 +31,7 @@ const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http:/
  */
 class ApiGateway {
   private app: express.Express;
+  private server: http.Server | null = null;
   private logger: winston.Logger;
   private redisClient: Redis.Redis;
 
@@ -75,33 +79,38 @@ class ApiGateway {
    */
   private configureExpress(): void {
     // CORS configuration
-    this.app.use(cors());
+    const corsOptions = {
+      origin: '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID']
+    };
     
-    // Security headers
-    this.app.use(helmet());
+    this.app.use(cors(corsOptions));
+    this.app.options('*', cors(corsOptions));
     
-    // JSON body parser
-    this.app.use(express.json({ limit: '1mb' }));
+    // Security headers - disable contentSecurityPolicy in development
+    this.app.use(helmet({
+      contentSecurityPolicy: NODE_ENV === 'production'
+    }));
     
-    // URL-encoded body parser
-    this.app.use(express.urlencoded({ extended: true, limit: '1mb' }));
-    
-    // Request logging
+    // Logging middleware - must come before body parsers
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       const requestId = uuidv4();
       res.setHeader('X-Request-ID', requestId);
       
-      this.logger.info(`${req.method} ${req.url}`, { 
+      this.logger.info(`Incoming request: ${req.method} ${req.url}`, { 
         requestId,
         ip: req.ip, 
-        userAgent: req.get('user-agent') 
+        userAgent: req.get('user-agent'),
+        contentType: req.get('content-type'),
+        contentLength: req.get('content-length')
       });
       
       const start = Date.now();
       
       res.on('finish', () => {
         const duration = Date.now() - start;
-        this.logger.info(`${req.method} ${req.url} ${res.statusCode}`, { 
+        this.logger.info(`Request completed: ${req.method} ${req.url} ${res.statusCode}`, { 
           requestId,
           duration,
           status: res.statusCode
@@ -110,6 +119,11 @@ class ApiGateway {
       
       next();
     });
+    
+    // Body parsers - only used for non-proxied routes
+    // For auth routes and API routes, we'll let the proxy handle the body
+    this.app.use('/health', express.json({ limit: '2mb' }));
+    this.app.use('/health', express.urlencoded({ extended: true, limit: '2mb' }));
     
     // Rate limiting
     const apiLimiter = rateLimit({
@@ -125,17 +139,6 @@ class ApiGateway {
     });
     
     this.app.use(apiLimiter);
-    
-    // Error handling middleware
-    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-      this.logger.error(`Unhandled error: ${err.stack}`);
-      res.status(500).json({
-        error: 'Internal Server Error',
-        message: NODE_ENV === 'production' 
-          ? 'An unexpected error occurred'
-          : err.message
-      });
-    });
   }
 
   /**
@@ -152,48 +155,15 @@ class ApiGateway {
     });
     
     // Authentication endpoints don't require auth
-    this.app.use('/auth', this.createProxyMiddleware({
-      target: AUTH_SERVICE_URL,
-      pathRewrite: { '^/auth': '' },
-      changeOrigin: true,
-    }));
+    this.app.use('/auth', this.createServiceProxy(AUTH_SERVICE_URL, ''));
     
     // Protected routes
-    this.app.use('/api/payment', this.authenticate.bind(this), this.createProxyMiddleware({
-      target: PAYMENT_SERVICE_URL,
-      pathRewrite: { '^/api/payment': '' },
-      changeOrigin: true,
-    }));
-    
-    this.app.use('/api/inventory', this.authenticate.bind(this), this.createProxyMiddleware({
-      target: INVENTORY_SERVICE_URL,
-      pathRewrite: { '^/api/inventory': '' },
-      changeOrigin: true,
-    }));
-    
-    this.app.use('/api/orders', this.authenticate.bind(this), this.createProxyMiddleware({
-      target: ORDER_SERVICE_URL,
-      pathRewrite: { '^/api/orders': '' },
-      changeOrigin: true,
-    }));
-    
-    this.app.use('/api/delivery', this.authenticate.bind(this), this.createProxyMiddleware({
-      target: DELIVERY_SERVICE_URL,
-      pathRewrite: { '^/api/delivery': '' },
-      changeOrigin: true,
-    }));
-    
-    this.app.use('/api/reports', this.authenticate.bind(this), this.createProxyMiddleware({
-      target: REPORTING_SERVICE_URL,
-      pathRewrite: { '^/api/reports': '' },
-      changeOrigin: true,
-    }));
-    
-    this.app.use('/api/notifications', this.authenticate.bind(this), this.createProxyMiddleware({
-      target: NOTIFICATION_SERVICE_URL,
-      pathRewrite: { '^/api/notifications': '' },
-      changeOrigin: true,
-    }));
+    this.app.use('/api/payment', this.authenticate.bind(this), this.createServiceProxy(PAYMENT_SERVICE_URL));
+    this.app.use('/api/inventory', this.authenticate.bind(this), this.createServiceProxy(INVENTORY_SERVICE_URL));
+    this.app.use('/api/orders', this.authenticate.bind(this), this.createServiceProxy(ORDER_SERVICE_URL));
+    this.app.use('/api/delivery', this.authenticate.bind(this), this.createServiceProxy(DELIVERY_SERVICE_URL));
+    this.app.use('/api/reports', this.authenticate.bind(this), this.createServiceProxy(REPORTING_SERVICE_URL));
+    this.app.use('/api/notifications', this.authenticate.bind(this), this.createServiceProxy(NOTIFICATION_SERVICE_URL));
     
     // 404 handler
     this.app.use((req: Request, res: Response) => {
@@ -203,14 +173,42 @@ class ApiGateway {
         message: `Cannot ${req.method} ${req.url}`
       });
     });
+
+    // Error handling middleware
+    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      this.logger.error(`Unhandled error: ${err.stack}`);
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: NODE_ENV === 'production' 
+          ? 'An unexpected error occurred'
+          : err.message
+      });
+    });
   }
 
   /**
-   * Create proxy middleware with logging and error handling
+   * Create a service proxy with proper request handling
    */
-  private createProxyMiddleware(options: Options): any {
-    const proxyMiddleware = createProxyMiddleware({
-      ...options,
+  private createServiceProxy(targetUrl: string, pathPrefix = ''): express.RequestHandler {
+    const pathRewrite: Record<string, string> = {};
+    
+    // Determine path rewrite pattern based on the service
+    if (targetUrl === AUTH_SERVICE_URL) {
+      pathRewrite['^/auth'] = '';
+    } else if (pathPrefix) {
+      pathRewrite[`^${pathPrefix}`] = '';
+    } else {
+      // Extract service name from the URL path to create the rewrite pattern
+      const match = /\/api\/([^\/]+)/.exec(pathPrefix || '');
+      if (match && match[1]) {
+        pathRewrite[`^/api/${match[1]}`] = '';
+      }
+    }
+    
+    return createProxyMiddleware({
+      target: targetUrl,
+      pathRewrite,
+      changeOrigin: true,
       logLevel: 'silent', // We'll handle logging ourselves
       onProxyReq: (proxyReq, req, res) => {
         // Add request ID to proxied request
@@ -224,39 +222,73 @@ class ApiGateway {
           proxyReq.setHeader('X-User-Roles', user.roles.join(','));
         }
         
-        // Call original onProxyReq if provided
-        if (options.onProxyReq) {
-          options.onProxyReq(proxyReq, req, res);
+        // Handle JSON bodies
+        if (req.body && Object.keys(req.body).length > 0) {
+          if (req.headers['content-type']?.includes('application/json')) {
+            const bodyData = JSON.stringify(req.body);
+            
+            // Update content-length
+            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+            
+            // End the original request before writing
+            proxyReq.setHeader('Connection', 'keep-alive');
+            
+            // Write body to request
+            proxyReq.write(bodyData);
+          }
         }
+        
+        // Log the outgoing proxy request
+        this.logger.debug(`Proxying ${req.method} ${req.url} to ${targetUrl}`, {
+          requestId,
+          headers: {
+            contentType: proxyReq.getHeader('content-type'),
+            contentLength: proxyReq.getHeader('content-length'),
+          },
+          targetUrl
+        });
       },
       onProxyRes: (proxyRes, req, res) => {
         // Log proxy response
-        this.logger.debug(`Proxy response from ${(options as any).target}${req.url}`, {
+        const requestId = res.getHeader('X-Request-ID') as string;
+        this.logger.debug(`Proxy response from ${targetUrl}${req.url}`, {
+          requestId,
           status: proxyRes.statusCode,
-          headers: proxyRes.headers
+          contentType: proxyRes.headers['content-type'],
+          contentLength: proxyRes.headers['content-length']
         });
-        
-        // Call original onProxyRes if provided
-        if (options.onProxyRes) {
-          options.onProxyRes(proxyRes, req, res);
-        }
       },
       onError: (err, req, res) => {
-        this.logger.error(`Proxy error for ${req.method} ${req.url}`, { error: err });
+        const requestId = res.getHeader('X-Request-ID') as string;
+        this.logger.error(`Proxy error for ${req.method} ${req.url}`, { 
+          requestId,
+          targetUrl,
+          error: err.message,
+          stack: err.stack
+        });
         
         // Send error response
         if (!res.headersSent) {
-          res.status(500).json({
+          res.status(503).json({
             error: 'Service Unavailable',
             message: NODE_ENV === 'production' 
               ? 'The requested service is currently unavailable'
               : `Proxy error: ${err.message}`
           });
         }
-      }
+      },
+      // Important options for reliable proxying
+      secure: false, // Allow self-signed certs in development
+      timeout: 30000, // 30 second timeout
+      proxyTimeout: 30000, // 30 second proxy timeout
+      followRedirects: false, // Don't follow redirects
+      selfHandleResponse: false, // Let the proxy handle the response
+      cookieDomainRewrite: '', // Rewrite cookies to match gateway domain
+      ws: false, // Don't proxy websockets
+      xfwd: true, // Add x-forwarded headers
+      // Don't parse the body; we've already done that
+      bodyParser: false
     });
-    
-    return proxyMiddleware;
   }
 
   /**
@@ -320,9 +352,32 @@ class ApiGateway {
    * Start the API Gateway
    */
   public start(): void {
-    this.app.listen(PORT, () => {
+    this.server = this.app.listen(PORT, () => {
       this.logger.info(`API Gateway running on port ${PORT}`);
     });
+    
+    // Add error handling for server
+    this.server.on('error', (error) => {
+      this.logger.error(`Server error: ${error}`);
+    });
+  }
+
+  /**
+   * Stop the API Gateway
+   */
+  public async stop(): Promise<void> {
+    if (this.server) {
+      await new Promise<void>((resolve) => {
+        this.server?.close(() => {
+          this.logger.info('API Gateway stopped');
+          resolve();
+        });
+      });
+    }
+    
+    if (this.redisClient) {
+      await this.redisClient.quit();
+    }
   }
 }
 
@@ -331,9 +386,12 @@ const gateway = new ApiGateway();
 gateway.start();
 
 // Handle graceful shutdown
-const shutdown = () => {
+const shutdown = async () => {
+  await gateway.stop();
   process.exit(0);
 };
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+export default ApiGateway;

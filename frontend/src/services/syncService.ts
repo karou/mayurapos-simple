@@ -1,7 +1,6 @@
 import { storageService } from './storageService';
 import { orderApi } from '../api/orderApi';
 import { paymentApi } from '../api/paymentApi';
-import { inventoryApi } from '../api/inventoryApi';
 
 type SyncCallback = (pendingCount: number) => void;
 
@@ -20,7 +19,7 @@ class SyncService {
    */
   async addToQueue(type: string, data: any): Promise<number> {
     const id = await storageService.addToOfflineQueue(type, data);
-    this.notifyListeners();
+    void this.notifyListeners();
     return id;
   }
 
@@ -47,7 +46,7 @@ class SyncService {
     this.listeners.push(callback);
     
     // Initial notification
-    this.getPendingSyncCount().then(count => callback(count));
+    void this.getPendingSyncCount().then(count => callback(count));
     
     // Return unsubscribe function
     return () => {
@@ -63,7 +62,7 @@ class SyncService {
    */
   private async notifyListeners(): Promise<void> {
     const count = await this.getPendingSyncCount();
-    this.listeners.forEach(listener => listener(count));
+    this.listeners.forEach(listener => void listener(count));
   }
 
   /**
@@ -98,7 +97,7 @@ class SyncService {
           // Mark as completed
           await storageService.updateOfflineQueueStatus(item.id, 'completed');
         } catch (error) {
-          console.error(`Failed to process offline queue item ${item.id}:`, error);
+          console.error(`Failed to process offline queue item ${String(item.id)}:`, error);
           
           // Mark as failed
           await storageService.updateOfflineQueueStatus(item.id, 'failed');
@@ -109,7 +108,7 @@ class SyncService {
       await storageService.setItem('lastSyncTime', new Date().toISOString());
       
       // Notify listeners
-      this.notifyListeners();
+      void this.notifyListeners();
     } finally {
       this.isSyncing = false;
     }
@@ -151,12 +150,12 @@ class SyncService {
     });
     
     // Update the locally stored order with the server's order ID
-    const localOrder = await storageService.getItem(`order_${offlineOrderId}`);
+    const localOrder = await storageService.getItem(`order_${String(offlineOrderId)}`);
     if (localOrder) {
       const parsedOrder = JSON.parse(localOrder);
       parsedOrder.serverId = order.orderId;
       parsedOrder.synced = true;
-      await storageService.setItem(`order_${offlineOrderId}`, JSON.stringify(parsedOrder));
+      await storageService.setItem(`order_${String(offlineOrderId)}`, JSON.stringify(parsedOrder));
     }
   }
 
@@ -179,12 +178,12 @@ class SyncService {
     );
     
     // Update the locally stored payment with the server's payment ID
-    const localPayment = await storageService.getItem(`payment_${offlinePaymentId}`);
+    const localPayment = await storageService.getItem(`payment_${String(offlinePaymentId)}`);
     if (localPayment) {
       const parsedPayment = JSON.parse(localPayment);
       parsedPayment.serverId = payment.paymentId;
       parsedPayment.synced = true;
-      await storageService.setItem(`payment_${offlinePaymentId}`, JSON.stringify(parsedPayment));
+      await storageService.setItem(`payment_${String(offlinePaymentId)}`, JSON.stringify(parsedPayment));
     }
   }
 

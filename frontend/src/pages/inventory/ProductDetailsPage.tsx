@@ -25,8 +25,6 @@ const ProductDetailsPage: React.FC = () => {
       setIsLoading(true);
       try {
         if (isOfflineMode) {
-          // Try to load from local storage
-          const productsData = await storageService.getProducts();
           
           // Try to load from local storage with full type safety
           try {
@@ -178,13 +176,6 @@ const ProductDetailsPage: React.FC = () => {
             showToast('Product not found in offline storage', 'error');
             navigate('/inventory');
           }
-            
-          if (foundProduct) {
-            setProduct(foundProduct);
-          } else {
-            showToast('Product not found in offline storage', 'error');
-            navigate('/inventory');
-          }
         } else {
           try {
             // Load from API
@@ -245,7 +236,7 @@ const ProductDetailsPage: React.FC = () => {
             const finalProduct: ProductWithInventory = typedProduct;
             
             // Save the typed product to state with explicit type assertion
-            setProduct(finalProduct as ProductWithInventory);
+            setProduct(finalProduct);
             
             // Store in local storage for offline use
             await storageService.storeProducts([finalProduct]);

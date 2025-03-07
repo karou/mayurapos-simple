@@ -1,0 +1,7 @@
+{"level":"info","message":"Connected to MongoDB: mongodb://localhost:27017/mayura-delivery","service":"delivery-service","timestamp":"2025-03-06T12:58:47.786Z"}
+{"level":"info","message":"Connected to RabbitMQ: amqp://localhost","service":"delivery-service","timestamp":"2025-03-06T12:58:47.848Z"}
+{"level":"info","message":"Connected to Redis: redis://localhost:6379","service":"delivery-service","timestamp":"2025-03-06T12:58:47.849Z"}
+{"level":"info","message":"delivery-service running on port 3005","service":"delivery-service","timestamp":"2025-03-06T12:58:47.851Z"}
+{"level":"info","message":"Connected to RabbitMQ","service":"delivery-service","timestamp":"2025-03-06T12:58:47.917Z"}
+{"level":"info","message":"Message topology restored after reconnection","service":"delivery-service","timestamp":"2025-03-06T12:58:47.918Z"}
+{"level":"info","message":"Subscribed to queue: delivery.order.events","service":"delivery-service","timestamp":"2025-03-06T12:58:47.921Z"}

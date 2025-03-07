@@ -3,7 +3,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { useOffline } from '../../hooks/useOffline';
 import { useToast } from '../../hooks/useToast';
 import { storageService } from '../../services/storageService';
-import { syncService } from '../../services/syncService';
 import Modal from '../../components/common/Modal';
 
 const SettingsPage: React.FC = () => {

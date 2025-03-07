@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mayura-frontend
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=http://api-gateway:8000
+      - REACT_APP_VERSION=1.0.0
+      - REACT_APP_OFFLINE_STORAGE_KEY=mayurapos-data
+    restart: unless-stopped
+    networks:
+      - mayura-network
+    depends_on:
+      - api-gateway
+      
   # API Gateway
   api-gateway:
     build:

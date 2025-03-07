@@ -1,4 +1,5 @@
-// src/contexts/AuthContext.tsx
+// Updated AuthContext.tsx with improved error handling
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
@@ -32,9 +33,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const storedToken = await storageService.getItem('token');
         
         if (storedUser && storedToken) {
-          const parsedUser = safeJsonParse<User>(storedUser, null);
-          if (parsedUser) {
+          // Safely parse user data with default fallback
+          const parsedUser = safeJsonParse<User | null>(storedUser, null);
+          
+          // Ensure parsed user has required properties
+          if (parsedUser && 
+              typeof parsedUser === 'object' && 
+              'userId' in parsedUser &&
+              'username' in parsedUser) {
             setUser(parsedUser);
+            
             // Validate token or refresh if needed
             try {
               await authService.validateToken();
@@ -42,6 +50,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               // Token is invalid, log the user out
               await logout();
             }
+          } else {
+            // Invalid user data, clear it
+            await storageService.removeItem('user');
           }
         }
       } catch (error) {
@@ -59,11 +70,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
-      const { user, token, refreshToken } = await authService.login(credentials);
+      // Validate credentials
+      if (!credentials || 
+          typeof credentials !== 'object' || 
+          !credentials.username || 
+          !credentials.password) {
+        throw new Error('Invalid login credentials');
+      }
+      
+      const { user, accessToken, refreshToken } = await authService.login(credentials);
+      
+      if (!user || !accessToken || !refreshToken) {
+        throw new Error('Authentication failed: Missing user data or tokens');
+      }
       
       // Store auth data
       await storageService.setItem('user', JSON.stringify(user));
-      await storageService.setItem('token', token);
+      await storageService.setItem('token', accessToken);
       await storageService.setItem('refreshToken', refreshToken);
       
       setUser(user);
@@ -80,6 +103,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     
     try {
+      // Validate user data
+      if (!userData || 
+          typeof userData !== 'object' || 
+          !userData.username || 
+          !userData.email || 
+          !userData.password || 
+          !userData.confirmPassword) {
+        throw new Error('Invalid registration data');
+      }
+      
       await authService.register(userData);
       // Auto login after registration
       await login({

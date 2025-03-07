@@ -1,4 +1,4 @@
-// src/api/orderApi.ts
+// src/api/orderApi.ts - fixed inferrable types
 import { apiClient } from './apiClient';
 import { 
   Order, 
@@ -42,7 +42,7 @@ class OrderApi {
    */
   async createOrder(
     items: CartItem[],
-    isOfflineOrder: boolean = false,
+    isOfflineOrder = false,  // Removed explicit boolean type
     metadata: Record<string, unknown> = {}
   ): Promise<Order> {
     const orderItems: OrderItem[] = items.map(item => ({
@@ -78,8 +78,8 @@ class OrderApi {
   async getCustomerOrders(
     customerId: string,
     status?: OrderStatus,
-    page: number = 1,
-    limit: number = 10
+    page = 1,  // Removed explicit number type
+    limit = 10  // Removed explicit number type
   ): Promise<PaginatedResponse<OrderSummary>> {
     const response = await apiClient.get<PaginatedResponse<OrderSummary>>(
       `/api/orders/orders/customer/${customerId}`, 
@@ -129,7 +129,7 @@ class OrderApi {
     name: string,
     quantity: number,
     unitPrice: number,
-    discount: number = 0
+    discount = 0  // Removed explicit number type
   ): Promise<Order> {
     const response = await apiClient.post<Order>(`/api/orders/orders/${orderId}/items`, {
       productId,

@@ -1,3 +1,4 @@
+// src/api/paymentApi.ts - fixed inferrable type
 import { apiClient } from './apiClient';
 import { 
   Payment, 
@@ -17,7 +18,7 @@ class PaymentApi {
     orderId: string,
     amount: number,
     method: PaymentMethod,
-    isOffline: boolean = false,
+    isOffline = false,  // Removed explicit boolean type
     metadata: Record<string, any> = {},
     customerEmail?: string
   ): Promise<PaymentResponse> {

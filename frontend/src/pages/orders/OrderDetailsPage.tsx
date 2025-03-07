@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useOffline } from '../../hooks/useOffline';
 import { useToast } from '../../hooks/useToast';
 import { orderApi } from '../../api/orderApi';
 import { Order } from '../../types/order.types';
@@ -11,7 +10,6 @@ import Spinner from '../../components/common/Spinner';
 const OrderDetailsPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const { isOfflineMode } = useOffline();
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [order, setOrder] = useState<Order | null>(null);
@@ -36,7 +34,7 @@ const OrderDetailsPage: React.FC = () => {
       }
     };
 
-    loadOrder();
+    void loadOrder();
   }, [orderId, navigate, showToast]);
 
   const handleCancel = () => {
