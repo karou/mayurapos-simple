@@ -30,105 +30,126 @@ const InventoryPage: React.FC = () => {
     return '';
   };
 
-  // Function to load products from API or storage
-  const loadProducts = useCallback(async () => {
+  // Function to load products from API or storage with improved error handling
+  const loadProducts = useCallback(async (page: number, searchParams: ProductSearchParams) => {
     setIsLoading(true);
 
     try {
       if (isOfflineMode) {
-        // Load products from local storage
-        const cachedProducts = await storageService.getProducts(
-          selectedCategory ? { category: selectedCategory } : undefined
-        );
-        
-        // Apply client-side filtering and sorting - Cast to Product[] for type safety
-        const typedProducts = cachedProducts as Product[];
-        let filteredProducts: Product[] = [];
-        
-        // Safely copy products with type safety
-        if (Array.isArray(typedProducts)) {
-          filteredProducts = [...typedProducts];
-        }
-        
-        // Apply search filter
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          filteredProducts = filteredProducts.filter(
-            (product) => {
-              const name = safeString(product.name);
-              const sku = safeString(product.sku);
-              const description = safeString(product.description);
-              
-              return name.includes(query) || 
-                     sku.includes(query) || 
-                     description.includes(query);
-            }
+        // Load products from local storage with error handling
+        let cachedProducts;
+        try {
+          cachedProducts = await storageService.getProducts(
+            searchParams.category ? { category: searchParams.category } : undefined
           );
+        } catch (storageError) {
+          console.error('Error loading products from storage:', storageError);
+          cachedProducts = [];
         }
         
-        // Apply sorting
+        // Ensure cachedProducts is an array before spreading
+        const safeProducts = Array.isArray(cachedProducts) ? cachedProducts : [];
+        
+        // Apply client-side filtering and sorting with type safety
+        let filteredProducts = [...safeProducts];
+        
+        // Apply search filter with safety checks
+        if (searchParams.query) {
+          const query = searchParams.query.toLowerCase();
+          filteredProducts = filteredProducts.filter(product => {
+            // Skip items that are null or not objects
+            if (!product || typeof product !== 'object') return false;
+            
+            const name = safeString(product.name);
+            const sku = safeString(product.sku);
+            const description = safeString(product.description);
+            
+            return name.includes(query) || 
+                   sku.includes(query) || 
+                   description.includes(query);
+          });
+        }
+        
+        // Apply sorting with type safety
         filteredProducts.sort((a, b) => {
           let comparison = 0;
           
-          if (sortBy === 'name') {
+          if (searchParams.sortBy === 'name') {
             const nameA = safeString(a.name);
             const nameB = safeString(b.name);
             comparison = nameA.localeCompare(nameB);
-          } else if (sortBy === 'price') {
+          } else if (searchParams.sortBy === 'price') {
             const priceA = typeof a.price === 'number' ? a.price : 0;
             const priceB = typeof b.price === 'number' ? b.price : 0;
             comparison = priceA - priceB;
           }
           
-          return sortOrder === 'asc' ? comparison : -comparison;
+          return searchParams.sortOrder === 'asc' ? comparison : -comparison;
         });
         
         // Apply pagination
-        const startIndex = (currentPage - 1) * limit;
+        const startIndex = (page - 1) * limit;
         const paginatedProducts = filteredProducts.slice(startIndex, startIndex + limit);
         
         setProducts(paginatedProducts);
         setTotalProducts(filteredProducts.length);
       } else {
-        // Create search params
-        const params: ProductSearchParams = {
-          page: currentPage,
-          limit,
-          sortBy,
-          sortOrder,
-        };
-        
-        if (searchQuery) {
-          params.query = searchQuery;
-        }
-        
-        if (selectedCategory) {
-          params.category = selectedCategory;
-        }
-        
-        // Load products from API
-        const response = await inventoryApi.searchProducts(params);
-        
-        setProducts(response.items);
-        setTotalProducts(response.pagination.total);
-        
-        // Cache products in local storage for offline use
-        if (response.items.length > 0) {
-          await storageService.storeProducts(response.items);
-        }
-        
-        // Collect categories from products if not loaded yet
-        if (categories.length === 0) {
-          const uniqueCategories = Array.from(
-            new Set(response.items.map((product) => product.category))
-          ).filter(Boolean);
+        // Load from API with error handling
+        try {
+          // Use the provided searchParams, but ensure page is correctly set
+          const params: ProductSearchParams = {
+            ...searchParams,
+            page, // Use the page parameter passed to the function
+            limit: searchParams.limit || limit
+          };
           
-          setCategories(uniqueCategories);
+          // Load products from API
+          const response = await inventoryApi.searchProducts(params);
+          
+          // Safely access response properties
+          const items = Array.isArray(response?.items) ? response.items : [];
+          const pagination = response?.pagination || { total: 0, pages: 1 };
+          
+          setProducts(items);
+          setTotalProducts(pagination.total || 0);
+          
+          // Cache products in local storage for offline use
+          if (items.length > 0) {
+            try {
+              await storageService.storeProducts(items);
+            } catch (cacheError) {
+              console.error('Failed to cache products:', cacheError);
+            }
+          }
+          
+          // Collect categories from products if not loaded yet
+          if (categories.length === 0) {
+            try {
+              const uniqueCategories = Array.from(
+                new Set(items.filter(Boolean).map(product => 
+                  typeof product.category === 'string' ? product.category : ''
+                ))
+              ).filter(Boolean);
+              
+              setCategories(uniqueCategories);
+            } catch (categoryError) {
+              console.error('Failed to extract categories:', categoryError);
+            }
+          }
+        } catch (apiError) {
+          console.error('API error:', apiError);
+          showToast('Failed to load products', 'error');
+          // Set safe defaults on API error
+          setProducts([]);
+          setTotalProducts(0);
         }
       }
     } catch (error) {
       console.error('Failed to load products:', error);
       showToast('Failed to load products', 'error');
+      // Set safe defaults on any error
+      setProducts([]);
+      setTotalProducts(0);
     } finally {
       setIsLoading(false);
     }
@@ -141,12 +162,19 @@ const InventoryPage: React.FC = () => {
     isOfflineMode,
     showToast,
     categories.length,
+    limit,
   ]);
 
   // Load products when dependencies change
   useEffect(() => {
-    void loadProducts();
-  }, [loadProducts]);
+    void loadProducts(currentPage, {
+      query: searchQuery,
+      category: selectedCategory,
+      sortBy,
+      sortOrder,
+      limit
+    });
+  }, [loadProducts, currentPage, searchQuery, selectedCategory, sortBy, sortOrder, limit]);
 
   // Handle search input
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,7 +327,10 @@ const InventoryPage: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {products.map((product) => (
-              <ProductCard key={product.productId} product={product} />
+              <ProductCard 
+                key={typeof product.productId === 'string' ? product.productId : `product-${Math.random()}`} 
+                product={product} 
+              />
             ))}
           </div>
         </>
